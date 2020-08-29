@@ -1,0 +1,20 @@
+digraph "vodisys_irq" {
+  layout=dot; newrank=true; nodesep=0.5; pack=true; splines = true; overlap = scale;
+  ranksep="0.1 equally"
+  node [shape=record, style=rounded, fontsize=12];
+  edge [fontname="Courier", fontsize=8]
+
+  init
+  idle [label="do_idle"]
+  setup [label="do_setup"]
+  running [label="do_running"]
+  stop [label="do_stop"]
+
+  init -> idle [label="init_to_idle"]
+  idle -> idle [label="stay"]
+  idle -> setup [label="to_setup"]
+  setup -> running  [label="#"]
+  running -> running [label="stay"]
+  running -> idle [label="to_idle"]
+  running -> stop
+}

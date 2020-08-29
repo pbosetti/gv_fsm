@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require "gv_fsm"
+
+SM = GV_FSM::FSM.new(ARGV[0])
+SM.project_name = "test project"
+SM.description = "FSM designed to test the generator"
+
+SM.generate_h
+SM.generate_c
+
