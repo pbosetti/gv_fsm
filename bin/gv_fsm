@@ -1,11 +1,30 @@
 #!/usr/bin/env ruby
 
 require "gv_fsm"
+require 'optparse'
 
-SM = GV_FSM::FSM.new(ARGV[0])
-SM.project_name = "test project"
-SM.description = "FSM designed to test the generator"
+sm = GV_FSM::FSM.new
 
-SM.generate_h
-SM.generate_c
+options = {}
+OptionParser.new do |parser|
+  parser.on("-p", "--project PROJECT_NAME",
+            "Set the project name to PROJECT_NAME") do |pn|
+    sm.project_name = pn
+  end
+
+  parser.on("-d", "--description DESCRIPTION", "Use DESCRITION string in header") do |desc|
+    sm.description = desc
+  end
+
+  parser.on("-o", "--output_file NAME", "Use NAME for generated .c and .h files") do |f|
+    sm.cname = f
+  end
+end.parse!
+
+raise ArgumentError, "I need the path to a Graphviz file!" unless ARGV[0]
+raise ArgumentError, "#{ARGV[0]} does not look like a Graphviz file!" unless File.extname(ARGV[0]) == ".dot"
+
+sm.parse(ARGV[0])
+sm.generate_h
+sm.generate_c
 

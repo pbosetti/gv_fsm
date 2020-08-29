@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'gv_fsm'
-  s.version     = '0.0.2'
+  s.version     = '0.0.3'
   s.date        = '2020-08-28'
   s.summary     = "Graphviz to Finite state machine"
   s.description = "A C/C++ code generator that creates code for a finite state machine given a description in graphviz language."

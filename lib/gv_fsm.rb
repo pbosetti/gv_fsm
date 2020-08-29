@@ -12,13 +12,13 @@ module GV_FSM
     attr_accessor :project_name, :description, :cname
     include GV_FSM::Templates
 
-    def initialize(filename)
-      raise ArgumentError, "File must be in .dot format" unless File.extname(filename) == ".dot"
-      @cname = File.basename(filename, ".dot")
-      parse(filename)
+    def initialize(filename = nil)
+      parse(filename) if filename
     end
 
     def parse(filename)
+      raise ArgumentError, "File must be in .dot format" unless File.extname(filename) == ".dot"
+      @cname = File.basename(filename, ".dot") unless (@cname and ! @cname.empty?)
       @dotfile = filename
       @states = []
       @transitions = []
