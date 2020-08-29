@@ -5,8 +5,10 @@ require 'optparse'
 
 sm = GV_FSM::FSM.new
 
-options = {}
+options = {header: true, source: true}
 OptionParser.new do |parser|
+  parser.banner = "Usage: gv_fsm [options] scheme.dot"
+
   parser.on("-p", "--project PROJECT_NAME",
             "Set the project name to PROJECT_NAME") do |pn|
     sm.project_name = pn
@@ -19,12 +21,27 @@ OptionParser.new do |parser|
   parser.on("-o", "--output_file NAME", "Use NAME for generated .c and .h files") do |f|
     sm.cname = f
   end
+
+  parser.on("-h", "--header-only", "Only generate header file") do
+    options[:source] = false
+  end
+
+  parser.on("-s", "--source-only", "Only generate source file") do
+    options[:header] = false
+  end
+
 end.parse!
 
 raise ArgumentError, "I need the path to a Graphviz file!" unless ARGV[0]
 raise ArgumentError, "#{ARGV[0]} does not look like a Graphviz file!" unless File.extname(ARGV[0]) == ".dot"
 
 sm.parse(ARGV[0])
-sm.generate_h
-sm.generate_c
-
+puts "Parsed #{sm.dotfile}.\nGenerating C stub for states: #{sm.states_list.join(", ")}."
+if options[:header] then
+  sm.generate_h 
+  puts "Generated header #{sm.cname}.h"
+end
+if options[:source] then
+  sm.generate_c 
+  puts "Generated source #{sm.cname}.c"
+end
