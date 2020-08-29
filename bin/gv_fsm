@@ -7,7 +7,13 @@ sm = GV_FSM::FSM.new
 
 options = {header: true, source: true}
 OptionParser.new do |parser|
-  parser.banner = "Usage: gv_fsm [options] scheme.dot"
+  parser.banner =<<~EOB 
+  Graphviz to Finite State Machine generator
+  Version: #{GV_FSM::VERSION}
+  See also https://github.com/pbosetti/gv_fsm
+  
+  Usage: gv_fsm [options] scheme.dot
+  EOB
 
   parser.on("-p", "--project PROJECT_NAME",
             "Set the project name to PROJECT_NAME") do |pn|
