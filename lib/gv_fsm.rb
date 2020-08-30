@@ -82,6 +82,15 @@ module GV_FSM
       return dest
     end
 
+    def transitions_paths
+      path = {}
+      @transitions.each do |t|
+        path[t[:function]] = [] unless path[t[:function]]
+        path[t[:function]] << {from: t[:from], to: t[:to]}
+      end
+      return path
+    end
+
     def generate_c(filename = @cname)
       File.open("#{filename}.c", "w") do |f|
         f.puts ERB.new(HEADER, 0, "<>").result(binding)

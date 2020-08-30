@@ -73,7 +73,18 @@ module GV_FSM
       #include <syslog.h>
       #include "<%= self.cname %>.h"
       
-      // State functions
+      //  ____  _        _       
+      // / ___|| |_ __ _| |_ ___ 
+      // \\___ \\| __/ _` | __/ _ \\
+      //  ___) | || (_| | ||  __/
+      // |____/ \\__\\__,_|\\__\\___|
+      //                         
+      //   __                  _   _                 
+      //  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+      // | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+      // |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+      // |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+      //                                             
       <% dest = self.destinations.dup %>
       <% self.states.each do |s| %>
       <% stable = true if dest[s[:id]].include? s[:id] %>
@@ -81,6 +92,7 @@ module GV_FSM
       <% if dest[s[:id]].empty? or stable then
         dest[s[:id]].unshift "NO_CHANGE"
       end %>
+      // To be executed in state <%= s[:id] %>
       state_t <%= s[:function] %>(void *data) {
         state_t next_state = <%= dest[s[:id]].first %>;
 
@@ -102,9 +114,25 @@ module GV_FSM
 
       <% end %>
 
-      // Transition functions
+      //  _____                    _ _   _              
+      // |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
+      //   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\  
+      //   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
+      //   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
+      //                                                
+      //   __                  _   _                 
+      //  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+      // | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+      // |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+      // |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+      //    
+                                               
       <% self.transition_functions_list.each do |t| %>
       <% next if t == "NULL" %>
+      // This function is called in transitions:
+      <% self.transitions_paths[t].each do |e| %>
+      // from <%= e[:from] %> to <%= e[:to] %>
+      <% end %>
       void <%= t %>(void *data) {
         syslog(LOG_INFO, "[FSM] State transition <%= t %>");
         /* Your code here */
@@ -112,7 +140,19 @@ module GV_FSM
 
       <% end %>
 
-      // State manager
+      //  ____  _        _        
+      // / ___|| |_ __ _| |_ ___  
+      // \\___ \\| __/ _` | __/ _ \\ 
+      //  ___) | || (_| | ||  __/ 
+      // |____/ \\__\\__,_|\\__\\___| 
+      //                          
+      //                                              
+      //  _ __ ___   __ _ _ __   __ _  __ _  ___ _ __ 
+      // | '_ ` _ \\ / _` | '_ \\ / _` |/ _` |/ _ \\ '__|
+      // | | | | | | (_| | | | | (_| | (_| |  __/ |   
+      // |_| |_| |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|   
+      //                              |___/           
+
       state_t run_state(state_t cur_state, void *data) {
         state_t new_state = state_table[cur_state](data);
         transition_func_t *transition = transition_table[cur_state][new_state];
