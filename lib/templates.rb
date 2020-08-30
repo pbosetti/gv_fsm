@@ -41,16 +41,17 @@ module GV_FSM
       state_t <%= s[:function] %>(void *data);
       <% end %>
 
+      // List of state functions
+      state_func_t *const state_table[NUM_STATES] = {
+        <%= self.state_functions_list.join(",\n  ")%>
+      };
+      
+      <% if self.transition_functions_list.count > 0 then %>
       // transition functions
       <% self.transition_functions_list.each do |t| %>
       <% next if t == "NULL" %>
       void <%= t %>(void *data);
       <% end %>
-
-      // List of state functions
-      state_func_t *const state_table[NUM_STATES] = {
-        <%= self.state_functions_list.join(",\n  ")%>
-      };
 
       // Table of transition functions
       transition_func_t *const transition_table[NUM_STATES][NUM_STATES] = {
@@ -62,6 +63,9 @@ module GV_FSM
         /* <%= sl[i].ljust(sw) %> */ {<%= l.map {|e| e.ljust(fw)}.join(", ") %>}, 
       <% end %>
       };
+      <% else %>
+      // No transition functions
+      <% end %>
 
       // state manager
       state_t run_state(state_t cur_state, void *data);
@@ -114,6 +118,7 @@ module GV_FSM
 
       <% end %>
 
+      <% if self.transition_functions_list.count > 0 then %>
       //  _____                    _ _   _              
       // |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
       //   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\  
@@ -139,6 +144,7 @@ module GV_FSM
       }
 
       <% end %>
+      <% end %>
 
       //  ____  _        _        
       // / ___|| |_ __ _| |_ ___  
@@ -155,9 +161,11 @@ module GV_FSM
 
       state_t run_state(state_t cur_state, void *data) {
         state_t new_state = state_table[cur_state](data);
+      <% if self.transition_functions_list.count > 0 then %>
         transition_func_t *transition = transition_table[cur_state][new_state];
         if (transition)
           transition(data);
+      <% end %>
         return new_state == NO_CHANGE ? cur_state : new_state;
       };
 

@@ -31,6 +31,7 @@ module GV_FSM
         g.each_edge do |e|
           from = e.node_one
           to = e.node_two
+          next unless e[:label]
           case e[:label].source
           when ""
             label = nil
