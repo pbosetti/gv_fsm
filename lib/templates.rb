@@ -59,9 +59,10 @@ module GV_FSM
       <% end %>
 
       // List of state functions
+      <% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length %>
       state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES] = {
       <% @states.each do |s| %>
-        <%= s[:function] %>, // in state <%= s[:id] %>
+        <%= (s[:function] + ',').ljust(fw+1) %> // in state <%= s[:id] %>
       <% end %>
       };
       
