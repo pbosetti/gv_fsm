@@ -22,6 +22,13 @@ module GV_FSM
       #define <%= @cname.upcase %>_H
       #include <stdlib.h>
 
+      // State data object
+      // By default set to void; override this typedef or load the proper
+      // header if you need
+      typedef void <%= @prefix %>state_data_t;
+
+      // NOTHING SHALL BE CHANGED AFTER THIS LINE!
+
       // List of states
       typedef enum {
       <% @states.each_with_index do |s, i| %>
@@ -29,17 +36,17 @@ module GV_FSM
       <% end %>
         <%= @prefix.upcase %>NUM_STATES,
         <%= @prefix.upcase %>NO_CHANGE
-      } state_t;
+      } <%= @prefix %>state_t;
 
       const char *state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
 
       // State function and state transition prototypes
-      typedef state_t state_func_t(void *data);
-      typedef void transition_func_t(void *data);
+      typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
+      typedef void transition_func_t(<%= @prefix %>state_data_t *data);
 
       // state functions
       <% @states.each do |s| %>
-      state_t <%= s[:function] %>(void *data);
+      <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data);
       <% end %>
 
       // List of state functions
@@ -51,7 +58,7 @@ module GV_FSM
       // transition functions
       <% transition_functions_list.each do |t| %>
       <% next if t == "NULL" %>
-      void <%= t %>(void *data);
+      void <%= t %>(<%= @prefix %>state_data_t *data);
       <% end %>
 
       // Table of transition functions
@@ -69,7 +76,7 @@ module GV_FSM
       <% end %>
 
       // state manager
-      state_t <%= @prefix %>run_state(state_t cur_state, void *data);
+      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, void *data);
       
       #endif
     EOH
@@ -98,8 +105,8 @@ module GV_FSM
         dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
       end %>
       // To be executed in state <%= s[:id] %>
-      state_t <%= s[:function] %>(void *data) {
-        state_t next_state = <%= dest[s[:id]].first %>;
+      <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
+        <%= @prefix %>state_t next_state = <%= dest[s[:id]].first %>;
 
         syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
         /* Your code here */
@@ -139,7 +146,7 @@ module GV_FSM
       <% transitions_paths[t].each do |e| %>
       // from <%= e[:from] %> to <%= e[:to] %>
       <% end %>
-      void <%= t %>(void *data) {
+      void <%= t %>(<%= @prefix %>state_data_t *data) {
         syslog(LOG_INFO, "[FSM] State transition <%= t %>");
         /* Your code here */
       }
@@ -160,8 +167,8 @@ module GV_FSM
       // |_| |_| |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|   
       //                              |___/           
 
-      state_t <%= @prefix %>run_state(state_t cur_state, void *data) {
-        state_t new_state = <%= @prefix %>state_table[cur_state](data);
+      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data) {
+        <%= @prefix %>state_t new_state = <%= @prefix %>state_table[cur_state](data);
       <% if transition_functions_list.count > 0 then %>
         transition_func_t *transition = <%= @prefix %>transition_table[cur_state][new_state];
         if (transition)
@@ -174,11 +181,11 @@ module GV_FSM
       #ifdef TEST_MAIN
       #include <unistd.h>
       int main() {
-        state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
+        <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
         openlog("SM", LOG_PID | LOG_PERROR, LOG_USER);
         syslog(LOG_INFO, "Starting SM");
         do {
-          cur_state = run_state(cur_state, NULL);
+          cur_state = <%= @prefix %>run_state(cur_state, NULL);
           sleep(1);
         } while (cur_state != <%= @prefix.upcase %>STATE_STOP);
         return 0;
