@@ -1,9 +1,4 @@
 digraph "gv_fsm example" {
-  layout=dot; newrank=true; nodesep=0.5; pack=true; splines = true; overlap = scale;
-  ranksep="0.1 equally"
-  node [shape=record, style=rounded, fontsize=12];
-  edge [fontname="Courier", fontsize=8]
-
   init
   idle [label="do_idle"]
   setup [label="do_setup"]

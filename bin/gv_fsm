@@ -6,7 +6,7 @@ require 'optparse'
 sm = GV_FSM::FSM.new
 
 options = {header: true, source: true}
-OptionParser.new do |parser|
+op = OptionParser.new do |parser|
   parser.banner =<<~EOB 
   Graphviz to Finite State Machine generator
   Version: #{GV_FSM::VERSION}
@@ -40,10 +40,25 @@ OptionParser.new do |parser|
     sm.prefix = p
   end
 
-end.parse!
+  parser.on("-h", "--help", "Prints this help") do
+    puts parser
+    exit
+  end
 
-raise ArgumentError, "I need the path to a Graphviz file!" unless ARGV[0]
-raise ArgumentError, "#{ARGV[0]} does not look like a Graphviz file!" unless File.extname(ARGV[0]) == ".dot"
+end
+
+op.parse!
+
+unless ARGV[0]
+  STDERR.puts "ERROR: I need the path to a Graphviz file!\n\n"
+  STDERR.puts op
+  exit
+end
+unless File.extname(ARGV[0]) == ".dot"
+  STDERR.puts "ERROR: #{ARGV[0]} does not look like a Graphviz file!\n\n"
+  STDERR.puts op
+  exit
+end
 
 sm.parse(ARGV[0])
 

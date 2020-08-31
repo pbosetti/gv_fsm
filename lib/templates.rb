@@ -42,6 +42,7 @@ module GV_FSM
         <%= @prefix.upcase %>NO_CHANGE
       } <%= @prefix %>state_t;
 
+      // State human-readable names
       const char *state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
       
       <% if transition_functions_list.count > 0 then %>
@@ -54,9 +55,18 @@ module GV_FSM
       <%end %>
 
       // State functions
+      <% dest = destinations.dup %>
       <% @states.each do |s| %>
+      <% stable = true if dest[s[:id]].include? s[:id] %>
+      <% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} %>
+      <% if dest[s[:id]].empty? or stable then
+        dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
+      end %>
+      // Function to be executed in state <%= s[:id] %>
+      // valid return states: <%= dest[s[:id]].join(", ") %>
       <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data);
       <% end %>
+
 
       // List of state functions
       <% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length %>
@@ -66,6 +76,7 @@ module GV_FSM
       <% end %>
       };
       
+
       <% if transition_functions_list.count > 0 then %>
       // Transition functions
       <% transition_functions_list.each do |t| %>

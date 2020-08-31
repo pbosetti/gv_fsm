@@ -1,5 +1,5 @@
 digraph "simple" {
-  init->running
-  running->running
-  running->stop
+  init -> run
+  run -> run
+  run -> stop
 }

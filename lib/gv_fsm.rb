@@ -36,7 +36,10 @@ module GV_FSM
         g.each_edge do |e|
           from = e.node_one
           to = e.node_two
-          next unless e[:label]
+          unless e[:label] then
+            @transitions << {from: from, to: to, function: nil} 
+            next
+          end
           case e[:label].source
           when ""
             label = nil
@@ -61,7 +64,7 @@ module GV_FSM
     def transition_functions_list
       lst = []
       @transitions.each do |t|
-        if !lst.include? t[:function] then
+        if t[:function] and !lst.include? t[:function] then
           lst << (t[:function] or "NULL")
         end
       end
