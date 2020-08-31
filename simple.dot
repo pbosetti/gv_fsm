@@ -1,0 +1,5 @@
+digraph "simple" {
+  init -> start
+  start -> start
+  start -> stop [label="#"]
+}

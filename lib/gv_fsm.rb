@@ -8,12 +8,17 @@ require File.expand_path("../version.rb", __FILE__)
 
 module GV_FSM
   class FSM
-    attr_reader :states, :transitions, :dotfile
+    attr_reader :states, :transitions, :dotfile, :prefix
     attr_accessor :project_name, :description, :cname
     include GV_FSM::Templates
 
     def initialize(filename = nil)
+      @prefix = ""
       parse(filename) if filename
+    end
+
+    def prefix=(v)
+      @prefix = v + '_'
     end
 
     def parse(filename)
@@ -26,7 +31,7 @@ module GV_FSM
         g.each_node do |id|
           n = g.get_node(id)
           label = n[:label].source.empty? ? "do_#{id}" : n[:label].source
-          @states << {id: id, function: label}
+          @states << {id: id, function: @prefix+label}
         end
         g.each_edge do |e|
           from = e.node_one
@@ -40,7 +45,7 @@ module GV_FSM
           else
             label = e[:label].source
           end
-          @transitions << {from: from, to: to, function: label}
+          @transitions << {from: from, to: to, function: label ? @prefix+label : nil}
         end
       end
     end
