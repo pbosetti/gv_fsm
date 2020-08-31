@@ -13,7 +13,6 @@ module GV_FSM
       Generated from: <%= @dotfile %>
       The finite state machine has:
         <%= @states.count %> states
-        <%= @transitions.count %> transitions
         <%= transition_functions_list.select {|e| e != 'NULL'}.count %> transition functions
       <% if @prefix != '' %>
       Functions and types have been generated with prefix "<%= @prefix %>"
@@ -44,10 +43,15 @@ module GV_FSM
       } <%= @prefix %>state_t;
 
       const char *state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
-
+      
+      <% if transition_functions_list.count > 0 then %>
       // State function and state transition prototypes
       typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
       typedef void transition_func_t(<%= @prefix %>state_data_t *data);
+      <% else %>
+      // State function prototype
+      typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
+      <%end %>
 
       // State functions
       <% @states.each do |s| %>
@@ -115,13 +119,14 @@ module GV_FSM
         dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
       end %>
       // Function to be executed in state <%= s[:id] %>
+      // valid return states: <%= dest[s[:id]].join(", ") %>
       <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
         <%= @prefix %>state_t next_state = <%= dest[s[:id]].first %>;
 
         syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
         /* <%= placeholder %> */
         
-        // valid return states: <%= dest[s[:id]].join(", ") %>
+        
         switch (next_state) {
       <% dest[s[:id]].each  do |str| %>
           case <%= str %>:
