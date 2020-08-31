@@ -1,5 +1,6 @@
 digraph "simple" {
-  init -> start
-  start -> start
-  start -> stop [label="#"]
+  run [label = "do_perform"]
+  init -> run
+  run -> run
+  run -> stop [label="#"]
 }

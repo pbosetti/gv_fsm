@@ -9,8 +9,9 @@ Curent version is very preliminary, but working.
 First, you have to create a Graphviz .dot file describing the state machine. Use directed edges for transition and follow these conventions:
 
 * States are represented by nodes. Node labels are taken as name of functions called within a state.
-* If the state label is missing, the function is fenerated with the signature `state_t do_<statename>(void *data)`
+* If the state label is missing, the function is generated with the signature `state_t do_<statename>(state_data_t *data)`
 * All persistent state data have to be put in the `data` object (typically a C struct)
+* `state_data_t` is typedef as `void`: either cast it within each state and transition function, or edit the typedef at the beginning of the header.
 * Transitions may have associated functions: if an edge (transition) label is missing, no transition function is generated. If it is present, then the label becomes the name of the function; if the lable is the `#` character, the function is generated with the signature `void <source_state>_to_<dest_state>()`
   
 The .dot file can be used for generating C/C++ files with the command:
