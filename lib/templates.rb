@@ -47,7 +47,7 @@ module GV_FSM
       } <%= @prefix %>state_t;
 
       // State human-readable names
-      const char *state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
+      extern const char *state_names[];
       
       <% if transition_functions_list.count > 0 then %>
       // State function and state transition prototypes
@@ -73,12 +73,7 @@ module GV_FSM
 
 
       // List of state functions
-      <% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length %>
-      state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES] = {
-      <% @states.each do |s| %>
-        <%= (s[:function] + ',').ljust(fw+1) %> // in state <%= s[:id] %>
-      <% end %>
-      };
+      extern state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES];
       
 
       <% if transition_functions_list.count > 0 then %>
@@ -89,21 +84,13 @@ module GV_FSM
       <% end %>
 
       // Table of transition functions
-      transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES] = {
-      <% sl = states_list %>
-      <% fw = transition_functions_list.max {|a, b| a.length <=> b.length}.length %>
-      <% sw = states_list.max {|a, b| a.length <=> b.length}.length %>
-        /* <%= "states:".ljust(sw) %>     <%= sl.map {|e| e.ljust(fw) }.join(", ") %> */
-      <% transitions_map.each_with_index do |l, i| %>
-        /* <%= sl[i].ljust(sw) %> */ {<%= l.map {|e| e.ljust(fw)}.join(", ") %>}, 
-      <% end %>
-      };
+      extern transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES];
       <% else %>
       // No transition functions
       <% end %>
 
       // state manager
-      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, void *data);
+      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, state_data_t *data);
       
       <% if !@ino then %>
       #endif
@@ -120,6 +107,33 @@ module GV_FSM
       
       <% placeholder = "Your Code Here" %>
       // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
+
+      // GLOBALS
+      // State human-readable names
+      const char *state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
+
+      // List of state functions
+      <% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length %>
+      state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES] = {
+      <% @states.each do |s| %>
+        <%= (s[:function] + ',').ljust(fw+1) %> // in state <%= s[:id] %>
+      <% end %>
+      };
+      <% if transition_functions_list.count > 0 then %>
+      
+      // Table of transition functions
+      transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES] = {
+      <% sl = states_list %>
+      <% fw = transition_functions_list.max {|a, b| a.length <=> b.length}.length %>
+      <% sw = [states_list, "states:"].flatten.max {|a, b| a.length <=> b.length}.length %>
+        /* <%= "states:".ljust(sw) %>     <%= sl.map {|e| e.ljust(fw) }.join(", ") %> */
+      <% transitions_map.each_with_index do |l, i| %>
+        /* <%= sl[i].ljust(sw) %> */ {<%= l.map {|e| e.ljust(fw)}.join(", ") %>}, 
+      <% end %>
+      };
+      <% else %>
+      // No transition functions
+      <% end %>
 
       //  ____  _        _       
       // / ___|| |_ __ _| |_ ___ 
