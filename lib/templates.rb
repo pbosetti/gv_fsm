@@ -22,16 +22,20 @@ module GV_FSM
     EOHEADER
 
     HH =<<~EOH
+      <% if !@ino then %>
       #ifndef <%= @cname.upcase %>_H
       #define <%= @cname.upcase %>_H
       #include <stdlib.h>
+      <% end %>
 
       // State data object
       // By default set to void; override this typedef or load the proper
       // header if you need
       typedef void <%= @prefix %>state_data_t;
-
+      <% if !@ino then %>
+      
       // NOTHING SHALL BE CHANGED AFTER THIS LINE!
+      <% end %>
 
       // List of states
       typedef enum {
@@ -101,12 +105,18 @@ module GV_FSM
       // state manager
       <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, void *data);
       
+      <% if !@ino then %>
       #endif
+      <% end %>
     EOH
 
     CC =<<~EOC
+      <% if !@ino then %>
+      <% if @syslog then %>
       #include <syslog.h>
+      <% end %>
       #include "<%= @cname %>.h"
+      <% end %>
       
       <% placeholder = "Your Code Here" %>
       // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
@@ -135,9 +145,10 @@ module GV_FSM
       <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
         <%= @prefix %>state_t next_state = <%= dest[s[:id]].first %>;
 
+      <% if @syslog then %>
         syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
+      <% end %>
         /* <%= placeholder %> */
-        
         
         switch (next_state) {
       <% dest[s[:id]].each  do |str| %>
@@ -145,7 +156,9 @@ module GV_FSM
       <% end %>
             break;
           default:
+      <% if @syslog then %>
             syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", state_names[next_state]);
+      <% end %>
             next_state = <%= @prefix.upcase %>NO_CHANGE;
         }
         return next_state;
@@ -175,7 +188,9 @@ module GV_FSM
       // <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
       <% end %>
       void <%= t %>(<%= @prefix %>state_data_t *data) {
+      <% if @syslog then %>
         syslog(LOG_INFO, "[FSM] State transition <%= t %>");
+      <% end %>
         /* <%= placeholder %> */
       }
 
@@ -205,20 +220,29 @@ module GV_FSM
         return new_state == <%= @prefix.upcase %>NO_CHANGE ? cur_state : new_state;
       };
 
-
+      <% if @ino then %>
+      /* Example usage:
+      <% else %>
       #ifdef TEST_MAIN
       #include <unistd.h>
       int main() {
+      <% end %>
         <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
+      <% if @syslog then %>
         openlog("SM", LOG_PID | LOG_PERROR, LOG_USER);
         syslog(LOG_INFO, "Starting SM");
+      <% end %>
         do {
           cur_state = <%= @prefix %>run_state(cur_state, NULL);
           sleep(1);
         } while (cur_state != <%= @prefix.upcase %>STATE_STOP);
+      <% if !@ino then %>
         return 0;
       }
       #endif
+      <% else %>
+      */
+      <% end %>
     EOC
   end
 end

@@ -40,6 +40,14 @@ op = OptionParser.new do |parser|
     sm.prefix = p
   end
 
+  parser.on("-i", "--ino", "Generate a single .ino file (for Arduino)") do
+    sm.ino = true
+  end
+
+  parser.on("-l", "--no-syslog", "Omit syslog calls in stub functions") do
+    sm.syslog = false
+  end
+
   parser.on("-h", "--help", "Prints this help") do
     puts parser
     exit
@@ -63,13 +71,17 @@ end
 sm.parse(ARGV[0])
 
 puts "Parsed #{sm.dotfile}.\nGenerating C stub for states: #{sm.states_list.join(", ")}."
-if options[:header] then
-  sm.generate_h 
-  puts "Generated header #{sm.cname}.h"
+if sm.ino then
+  sm.generate_ino
+  puts "Generated .ino file #{sm.cname}.ino"
+else
+  if options[:header] then
+    sm.generate_h 
+    puts "Generated header #{sm.cname}.h"
+  end
+  if options[:source] then
+    sm.generate_c 
+    puts "Generated source #{sm.cname}.c"
+  end
 end
-if options[:source] then
-  sm.generate_c 
-  puts "Generated source #{sm.cname}.c"
-end
-
 

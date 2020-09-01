@@ -9,11 +9,13 @@ require File.expand_path("../version.rb", __FILE__)
 module GV_FSM
   class FSM
     attr_reader :states, :transitions, :dotfile, :prefix
-    attr_accessor :project_name, :description, :cname
+    attr_accessor :project_name, :description, :cname, :syslog, :ino
     include GV_FSM::Templates
 
     def initialize(filename = nil)
       @prefix = ""
+      @syslog = true
+      @ino = false
       parse(filename) if filename
     end
 
@@ -111,6 +113,15 @@ module GV_FSM
       File.open("#{filename}.h", "w") do |f|
         f.puts ERB.new(HEADER, 0, "<>").result(binding)
         f.puts ERB.new(HH, 0, "<>").result(binding)
+      end
+    end
+
+    def generate_ino(filename=@cname)
+      @syslog = false
+      File.open("#{filename}.ino", "w") do |f|
+        f.puts ERB.new(HEADER, 0, "<>").result(binding)
+        f.puts ERB.new(HH, 0, "<>").result(binding)
+        f.puts ERB.new(CC, 0, "<>").result(binding)
       end
     end
   end

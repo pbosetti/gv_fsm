@@ -2,11 +2,19 @@
 
 This is a Ruby gem and executable for generating a stub for a Finite State Machine in C/C++ from a scheme written in Graphviz language.
 
-Curent version is very preliminary, but working.
+## Installation
+
+Simply:
+
+```sh
+[sudo] gem install gv_fsm
+```
+
+**Warning**: if you are using [rvm](https://rvm.io) or similar tools, the executable is installed in the rvm hidden folders: find where it is with `gem environment` **be sure to have the path for EXECUTABLE DIRECTORY it in your path!**
 
 ## Usage
 
-First, you have to create a Graphviz .dot file describing the state machine. Use directed edges for transition and follow these conventions:
+First, you have to create a Graphviz .dot file describing the state machine. Use **directed edges** for transition and follow these conventions:
 
 * States are represented by nodes. Node labels are taken as name of functions called within a state.
 * If the state label is missing, the function is generated with the signature `state_t do_<statename>(state_data_t *data)`
@@ -23,6 +31,10 @@ gv_fsm scheme.dot
 This generates a header file (by default with the name `scheme.h`, use the `-s` switch for changing it) and the source file (`scheme.c`). Typically, **you have then to provide the implementation of state and transition functions by only editing the `scheme.c` file**.
 
 The main interface to the FSM in C is the `run_state` function. See at the end of the generated source file for example usage.
+
+## Arduino support
+
+If you need an FSM for your Arduino, you can generate it with the command option `--ino`: this will generate one single `.ino` file, omitting all instructions that are not available on the Arduino (e.g. the `syslog` calls).
 
 ## Example
 
