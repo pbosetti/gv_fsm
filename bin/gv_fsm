@@ -28,7 +28,7 @@ op = OptionParser.new do |parser|
     sm.cname = f
   end
 
-  parser.on("-h", "--header-only", "Only generate header file") do
+  parser.on("-e", "--header-only", "Only generate header file") do
     options[:source] = false
   end
 
