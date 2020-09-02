@@ -32,7 +32,12 @@ module GV_FSM
       GraphViz.parse(filename) do |g|
         g.each_node do |id|
           n = g.get_node(id)
-          label = n[:label].source.empty? ? "do_#{id}" : n[:label].source
+          if n[:label].source.empty? or
+            (n[:label].source == id and !n[:label].source.match(/^do_/)) then
+            label = "do_#{id}"
+          else
+            label = n[:label].source
+          end
           @states << {id: id, function: @prefix+label}
         end
         g.each_edge do |e|
