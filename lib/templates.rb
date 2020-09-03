@@ -226,6 +226,7 @@ module GV_FSM
 
       <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data) {
         <%= @prefix %>state_t new_state = <%= @prefix %>state_table[cur_state](data);
+        if (new_state == <%= @prefix.upcase %>NO_CHANGE) new_state = cur_state;
       <% if transition_functions_list.count > 0 then %>
         transition_func_t *transition = <%= @prefix %>transition_table[cur_state][new_state];
         if (transition)
