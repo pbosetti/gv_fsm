@@ -261,7 +261,7 @@ module GV_FSM
       #ifdef TEST_MAIN
       #include <unistd.h>
       int main() {
-        <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
+        <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_<%= @states.first[:id].upcase %>;
       <% if @syslog then %>
         openlog("SM", LOG_PID | LOG_PERROR, LOG_USER);
         syslog(LOG_INFO, "Starting SM");
