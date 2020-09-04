@@ -26,6 +26,8 @@ module GV_FSM
       #ifndef <%= @cname.upcase %>_H
       #define <%= @cname.upcase %>_H
       #include <stdlib.h>
+      <% else %>
+      #include <arduino.h>
       <% end %>
 
       // State data object
@@ -100,10 +102,13 @@ module GV_FSM
     CC =<<~EOC
       <% if !@ino then %>
       <% if @syslog then %>
+      <% log = :syslog %>
       #include <syslog.h>
       <% end %>
-      #include "<%= @cname %>.h"
+      <% else %>
+      <% if @syslog then log = :ino end %>
       <% end %>
+      #include "<%= @cname %>.h"
       
       <% placeholder = "Your Code Here" %>
       // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
@@ -159,8 +164,10 @@ module GV_FSM
       <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
         <%= @prefix %>state_t next_state = <%= dest[s[:id]].first %>;
 
-      <% if @syslog then %>
+      <% if log == :syslog then %>
         syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
+      <% elsif log == :ino then %>
+        Serial.println("[FSM] In state <%= s[:id] %>");
       <% end %>
         /* <%= placeholder %> */
         
@@ -170,8 +177,12 @@ module GV_FSM
       <% end %>
             break;
           default:
-      <% if @syslog then %>
+      <% if log == :syslog then %>
             syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", state_names[next_state]);
+      <% elsif log == :ino then %>
+            Serial.print("[FSM] Cannot pass from <%= s[:id] %> to ");
+            Serial.print(state_names[next_state]);
+            Serial.println(", remaining in this state");
       <% end %>
             next_state = <%= @prefix.upcase %>NO_CHANGE;
         }
@@ -202,8 +213,10 @@ module GV_FSM
       // <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
       <% end %>
       void <%= t %>(<%= @prefix %>state_data_t *data) {
-      <% if @syslog then %>
+      <% if log == :syslog then %>
         syslog(LOG_INFO, "[FSM] State transition <%= t %>");
+      <% elsif log == :ino then %>
+        Serial.println("[FSM] State transition <%= t %>");
       <% end %>
         /* <%= placeholder %> */
       }
@@ -237,11 +250,17 @@ module GV_FSM
 
       <% if @ino then %>
       /* Example usage:
+      <%= @prefix %>state_data_t data = {count: 1};
+
+      void loop() {
+        static <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
+        cur_state = <%= @prefix %>run_state(cur_state, &data);
+      }
+      */
       <% else %>
       #ifdef TEST_MAIN
       #include <unistd.h>
       int main() {
-      <% end %>
         <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
       <% if @syslog then %>
         openlog("SM", LOG_PID | LOG_PERROR, LOG_USER);
@@ -251,12 +270,9 @@ module GV_FSM
           cur_state = <%= @prefix %>run_state(cur_state, NULL);
           sleep(1);
         } while (cur_state != <%= @prefix.upcase %>STATE_STOP);
-      <% if !@ino then %>
         return 0;
       }
       #endif
-      <% else %>
-      */
       <% end %>
     EOC
   end

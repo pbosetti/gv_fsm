@@ -8,7 +8,7 @@ require File.expand_path("../version.rb", __FILE__)
 
 module GV_FSM
   class FSM
-    attr_reader :states, :transitions, :dotfile, :prefix
+    attr_reader :states, :transitions, :dotfile, :prefix, :error
     attr_accessor :project_name, :description, :cname, :syslog, :ino
     include GV_FSM::Templates
 
@@ -16,6 +16,7 @@ module GV_FSM
       @prefix = ""
       @syslog = true
       @ino = false
+      @error = nil
       parse(filename) if filename
     end
 
@@ -29,7 +30,20 @@ module GV_FSM
       @dotfile = filename
       @states = []
       @transitions = []
-      GraphViz.parse(filename) do |g|
+      graph = GraphViz.parse(filename) do |g|
+        if g.graph_count > 1 then
+          @error = "Only one graph in the dot file is permitted"
+          return nil
+        end
+        unless g.type == "digraph" then
+          @error = "Graph is not directed"
+          return nil
+        end
+        if g.node_count == 0 then
+          @error = "Graph is empty"
+          return nil
+        end
+        @description = g.name
         g.each_node do |id|
           n = g.get_node(id)
           if n[:label].source.empty? or
@@ -58,6 +72,11 @@ module GV_FSM
           @transitions << {from: from, to: to, function: label ? @prefix+label : nil}
         end
       end
+      unless graph then 
+        @error = "Parsing error"
+        return nil
+      end
+      return graph
     end
 
     def state_functions_list
@@ -108,27 +127,24 @@ module GV_FSM
     end
 
     def generate_c(filename = @cname)
-      File.open("#{filename}.c", "w") do |f|
+      ext = @ino ? "cpp" : "c"
+      fname = "#{filename}.#{ext}"
+      File.open(fname, "w") do |f|
         f.puts ERB.new(HEADER, 0, "<>").result(binding)
         f.puts ERB.new(CC, 0, "<>").result(binding)
       end
+      return fname
     end
 
     def generate_h(filename = @cname)
-      File.open("#{filename}.h", "w") do |f|
+      fname = "#{filename}.h"
+      File.open(fname, "w") do |f|
         f.puts ERB.new(HEADER, 0, "<>").result(binding)
         f.puts ERB.new(HH, 0, "<>").result(binding)
       end
+      return fname
     end
 
-    def generate_ino(filename=@cname)
-      @syslog = false
-      File.open("#{filename}.ino", "w") do |f|
-        f.puts ERB.new(HEADER, 0, "<>").result(binding)
-        f.puts ERB.new(HH, 0, "<>").result(binding)
-        f.puts ERB.new(CC, 0, "<>").result(binding)
-      end
-    end
   end
 
 end

@@ -44,7 +44,7 @@ op = OptionParser.new do |parser|
     sm.ino = true
   end
 
-  parser.on("-l", "--no-syslog", "Omit syslog calls in stub functions") do
+  parser.on("-l", "--no-log", "Omit log calls in stub functions") do
     sm.syslog = false
   end
 
@@ -60,28 +60,27 @@ op.parse!
 unless ARGV[0]
   STDERR.puts "ERROR: I need the path to a Graphviz file!\n\n"
   STDERR.puts op
-  exit
+  exit 1
 end
-unless File.extname(ARGV[0]) == ".dot"
+if !File.extname(ARGV[0]) == ".dot" or !File.exist? ARGV[0] then
   STDERR.puts "ERROR: #{ARGV[0]} does not look like a Graphviz file!\n\n"
   STDERR.puts op
-  exit
+  exit 2
 end
 
-sm.parse(ARGV[0])
+unless sm.parse(ARGV[0]) then
+  puts "Error parsing the file #{ARGV[0]}: #{sm.error}"
+  exit 3
+end
 
 puts "Parsed #{sm.dotfile}.\nGenerating C stub for states: #{sm.states_list.join(", ")}."
-if sm.ino then
-  sm.generate_ino
-  puts "Generated .ino file #{sm.cname}.ino"
-else
-  if options[:header] then
-    sm.generate_h 
-    puts "Generated header #{sm.cname}.h"
-  end
-  if options[:source] then
-    sm.generate_c 
-    puts "Generated source #{sm.cname}.c"
-  end
+
+if options[:header] then
+  name = sm.generate_h 
+  puts "Generated header #{name}"
+end
+if options[:source] then
+  name = sm.generate_c
+  puts "Generated source #{name}"
 end
 
