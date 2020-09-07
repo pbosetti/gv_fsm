@@ -39,5 +39,6 @@ If you need an FSM for your Arduino, you can generate it with the command option
 ## Example
 
 See the `sm.dot` file as FSM example, and the generated files `example.{c,h}`. In this example, the same function `stay` is generated from both transitions from idle to idle and from running to running. Also, the name of the transition from setup to running is automatically generated (as `setup_to_running`).
+The files `arduino.{cpp,h}` are the corresponding examples generated for the Arduino platform.
 
 ![Example graph](example.png)
