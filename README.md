@@ -34,7 +34,7 @@ The main interface to the FSM in C is the `run_state` function. See at the end o
 
 ## Arduino support
 
-If you need an FSM for your Arduino, you can generate it with the command option `--ino`: this will generate one single `.ino` file, omitting all instructions that are not available on the Arduino (e.g. the `syslog` calls).
+If you need an FSM for your Arduino, you can generate it with the command option `--ino`: this will generate a `.h` and a `.cpp` files, omitting all instructions that are not available on the Arduino (e.g. the `syslog` calls, which are replaced with `Serial.print calls`). Load these files in the IDE, require the header from the main `.ino` file, and call the FSM manager function from within the main `loop()` function.
 
 ## Example
 
