@@ -2,6 +2,8 @@
 
 This is a Ruby gem and executable for generating a stub for a Finite State Machine in C/C++ from a scheme written in Graphviz language.
 
+**DISCLAIMER**: You need Ruby for running it, but it runs as a command line executable that transparently uses Ruby for generating C/C++ source code. So **you do not need to know/like Ruby in order to use it**:
+
 ## Installation
 
 Simply:
