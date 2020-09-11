@@ -258,6 +258,7 @@ module GV_FSM
       }
       */
       <% else %>
+      <% nsinks = topology[:sinks].count %>
       #ifdef TEST_MAIN
       #include <unistd.h>
       int main() {
@@ -269,7 +270,11 @@ module GV_FSM
         do {
           cur_state = <%= @prefix %>run_state(cur_state, NULL);
           sleep(1);
-        } while (cur_state != <%= @prefix.upcase %>STATE_STOP);
+      <% if nsinks == 1 %>
+        } while (cur_state != <%= @prefix.upcase %>STATE_<%= topology[:sinks][0].upcase %>);
+      <% else %>
+        } while (1);
+      <% end %>
         return 0;
       }
       #endif

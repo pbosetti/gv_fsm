@@ -73,7 +73,20 @@ unless sm.parse(ARGV[0]) then
   exit 3
 end
 
-puts "Parsed #{sm.dotfile}.\nGenerating C stub for states: #{sm.states_list.join(", ")}."
+puts "Parsed #{sm.dotfile}"
+top = sm.topology
+puts "Graph topology:"
+puts "  Pure source nodes: #{top[:sources].join(', ')}"
+puts "  Pure sink nodes:   #{top[:sinks].empty? ? "<none>" : top[:sinks].join(', ')}"
+
+if !(top[:sources].count == 1 and top[:sinks].count <= 1) then
+  puts "Topology error: there must be exactly one source and zero or one sink"
+  exit 4
+end
+
+puts "Generating C functions for states: #{sm.states_list.join(", ")}."
+puts "                   for transition: #{sm.transition_functions_list.join(", ")}."
+
 
 if options[:header] then
   name = sm.generate_h 

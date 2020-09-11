@@ -2,6 +2,7 @@
 
 require 'ruby-graphviz'
 require 'erb'
+require 'matrix'
 
 require File.expand_path('../templates.rb', __FILE__)
 require File.expand_path("../version.rb", __FILE__)
@@ -17,6 +18,8 @@ module GV_FSM
       @syslog = true
       @ino = false
       @error = nil
+      @matrix = nil
+      @nodemap = {}
       parse(filename) if filename
     end
 
@@ -39,11 +42,14 @@ module GV_FSM
           @error = "Graph is not directed"
           return nil
         end
-        if g.node_count == 0 then
+        n = g.node_count
+        if n == 0 then
           @error = "Graph is empty"
           return nil
         end
+        @matrix = Matrix.zero(n, n)
         @description = g.name
+        i = 0
         g.each_node do |id|
           n = g.get_node(id)
           if n[:label].source.empty? or
@@ -52,9 +58,12 @@ module GV_FSM
           else
             label = n[:label].source
           end
+          @nodemap[id] = i
+          i += 1
           @states << {id: id, function: @prefix+label}
         end
         g.each_edge do |e|
+          @matrix[@nodemap[e.node_one], @nodemap[e.node_two]] += 1
           from = e.node_one
           to = e.node_two
           unless e[:label] then
@@ -143,6 +152,16 @@ module GV_FSM
         f.puts ERB.new(HH, 0, "<>").result(binding)
       end
       return fname
+    end
+
+    def topology
+      res = {matrix: @matrix}
+      # rows have the number of froms, columns the number of tos
+      res[:froms] = @matrix.row_vectors.map {|v| v.sum }
+      res[:tos] = @matrix.column_vectors.map {|v| v.sum }
+      res[:sinks] = res[:froms].each_index.select {|i| res[:froms][i] == 0}.map {|i| @nodemap.keys[i]}
+      res[:sources] = res[:tos].each_index.select {|i| res[:tos][i] == 0}.map {|i| @nodemap.keys[i]}
+      return res
     end
 
   end
