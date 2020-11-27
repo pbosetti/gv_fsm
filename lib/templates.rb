@@ -272,6 +272,7 @@ module GV_FSM
           sleep(1);
       <% if nsinks == 1 %>
         } while (cur_state != <%= @prefix.upcase %>STATE_<%= topology[:sinks][0].upcase %>);
+        <%= @prefix %>run_state(cur_state, NULL);
       <% else %>
         } while (1);
       <% end %>
