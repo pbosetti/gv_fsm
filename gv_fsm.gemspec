@@ -15,4 +15,5 @@ Gem::Specification.new do |s|
   s.executables << "gv_fsm"
   s.require_paths = ["lib"]
   s.add_dependency('ruby-graphviz', "~> 1.2.5")
+  s.required_ruby_version = '>= 2.7'
 end
