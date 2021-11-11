@@ -92,7 +92,7 @@ module GV_FSM
       <% end %>
 
       // state manager
-      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, state_data_t *data);
+      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data);
       
       <% if !@ino then %>
       #endif
