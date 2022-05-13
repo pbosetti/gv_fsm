@@ -48,7 +48,7 @@ module GV_FSM
           return nil
         end
         @matrix = Matrix.zero(n, n)
-        @description = g.name
+        @description = g.name unless @description
         i = 0
         g.each_node do |id|
           n = g.get_node(id)
