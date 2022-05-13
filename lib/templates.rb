@@ -23,8 +23,8 @@ module GV_FSM
 
     HH =<<~EOH
       <% if !@ino then %>
-      #ifndef <%= @cname.upcase %>_H
-      #define <%= @cname.upcase %>_H
+      #ifndef <%= File::basename(@cname).upcase %>_H
+      #define <%= File::basename(@cname).upcase %>_H
       #include <stdlib.h>
       <% else %>
       #include <arduino.h>
@@ -92,7 +92,7 @@ module GV_FSM
       <% end %>
 
       // state manager
-      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, state_data_t *data);
+      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data);
       
       <% if !@ino then %>
       #endif
@@ -108,7 +108,7 @@ module GV_FSM
       <% else %>
       <% if @syslog then log = :ino end %>
       <% end %>
-      #include "<%= @cname %>.h"
+      #include "<%= File::basename(@cname) %>.h"
       
       <% placeholder = "Your Code Here" %>
       // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
