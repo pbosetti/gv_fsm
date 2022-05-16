@@ -110,6 +110,17 @@ module GV_FSM
       <% end %>
       #include "<%= File::basename(@cname) %>.h"
       
+      <% if sigint then %>// Install signal handler: 
+      // SIGINT requests a transition to state <%= self.sigint %>
+      #include <signal.h>
+      static int _exit_request = 0;
+      static void signal_handler(int signal) {
+        if (signal == SIGINT)
+          syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");
+          _exit_request = 1;
+      }
+
+      <% end %>
       <% placeholder = "Your Code Here" %>
       // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
 
@@ -153,6 +164,7 @@ module GV_FSM
       // |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
       //                                             
       <% dest = destinations.dup %>
+      <% topo = self.topology %>
       <% @states.each do |s| %>
       <% stable = true if dest[s[:id]].include? s[:id] %>
       <% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} %>
@@ -161,9 +173,13 @@ module GV_FSM
       end %>
       // Function to be executed in state <%= s[:id] %>
       // valid return states: <%= dest[s[:id]].join(", ") %>
+      <% if sigint && stable && topo[:sources][0] != s[:id] then %>
+      // SIGINT triggers an emergency transition to <%= self.sigint %>
+      <% end %>
       <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
         <%= @prefix %>state_t next_state = <%= dest[s[:id]].first %>;
-
+        <% if sigint && topo[:sources][0] == s[:id] then %>signal(SIGINT, signal_handler); 
+        <% end %>
       <% if log == :syslog then %>
         syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
       <% elsif log == :ino then %>
@@ -186,6 +202,10 @@ module GV_FSM
       <% end %>
             next_state = <%= @prefix.upcase %>NO_CHANGE;
         }
+        <% if sigint && stable && topo[:sources][0] != s[:id] then %>
+        // SIGINT transition override
+        if (_exit_request) next_state = <%= (@prefix+"STATE_"+self.sigint ).upcase %>;
+        <% end %>
         return next_state;
       }
 

@@ -10,7 +10,7 @@ require File.expand_path("../version.rb", __FILE__)
 module GV_FSM
   class FSM
     attr_reader :states, :transitions, :dotfile, :prefix, :error
-    attr_accessor :project_name, :description, :cname, :syslog, :ino
+    attr_accessor :project_name, :description, :cname, :syslog, :ino, :sigint
     include GV_FSM::Templates
 
     def initialize(filename = nil)
@@ -20,6 +20,7 @@ module GV_FSM
       @error = nil
       @matrix = nil
       @nodemap = {}
+      @sigint = nil
       parse(filename) if filename
     end
 
@@ -83,6 +84,10 @@ module GV_FSM
       end
       unless graph then 
         @error = "Parsing error"
+        return nil
+      end
+      if (self.sigint && !states.find {|s| s[:id] == self.sigint}) then
+        @error = "Missing SIGINT state #{self.sigint}"
         return nil
       end
       return graph

@@ -48,6 +48,10 @@ op = OptionParser.new do |parser|
     sm.syslog = false
   end
 
+  parser.on("-k", "--sigint STATE", "Install SIGINT handler that points to STATE") do |state|
+    sm.sigint = state
+  end
+
   parser.on("-h", "--help", "Prints this help") do
     puts parser
     exit
@@ -73,6 +77,11 @@ unless sm.parse(ARGV[0]) then
   exit 3
 end
 
+if sm.ino && sm.sigint then
+  STDERR.puts "ERROR: signal handler is not supported on Arduino!\n\n"
+  exit 4
+end
+
 puts "Parsed #{sm.dotfile}"
 top = sm.topology
 puts "Graph topology:"
@@ -87,11 +96,18 @@ end
 puts "Generating C functions for states: #{sm.states_list.join(", ")}."
 puts "                   for transition: #{sm.transition_functions_list.join(", ")}."
 
+if (sm.sigint) then
+  puts "Installed signal handler for SIGINT in state #{top[:sources][0]}:\n  stable states have emergency transition to state #{sm.sigint}"
+  unless top[:sinks].include? sm.sigint then
+    puts "WARNING: the state #{sm.sigint} is not a source, please check topology"
+  end
+end
 
 if options[:header] then
   name = sm.generate_h 
   puts "Generated header #{name}"
 end
+
 if options[:source] then
   name = sm.generate_c
   puts "Generated source #{name}"
