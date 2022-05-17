@@ -49,7 +49,7 @@ module GV_FSM
       } <%= @prefix %>state_t;
 
       // State human-readable names
-      extern const char *state_names[];
+      extern const char *<%= @prefix %>state_names[];
       
       <% if transition_functions_list.count > 0 then %>
       // State function and state transition prototypes
@@ -128,7 +128,7 @@ module GV_FSM
 
       // GLOBALS
       // State human-readable names
-      const char *state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
+      const char *<%= @prefix %>state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
 
       // List of state functions
       <% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length %>
@@ -196,10 +196,10 @@ module GV_FSM
             break;
           default:
       <% if log == :syslog then %>
-            syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", state_names[next_state]);
+            syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
       <% elsif log == :ino then %>
             Serial.print("[FSM] Cannot pass from <%= s[:id] %> to ");
-            Serial.print(state_names[next_state]);
+            Serial.print(<%= @prefix %>state_names[next_state]);
             Serial.println(", remaining in this state");
       <% end %>
             next_state = <%= @prefix.upcase %>NO_CHANGE;
