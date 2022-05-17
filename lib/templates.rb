@@ -115,9 +115,11 @@ module GV_FSM
       #include <signal.h>
       static int _exit_request = 0;
       static void signal_handler(int signal) {
-        if (signal == SIGINT)
-          syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");
-          _exit_request = 1;
+        if (signal == SIGINT) {
+          _exit_request = 1;<% if log == :syslog then %>
+          syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");<% elsif log == :ino then %>
+          Serial.println("[FSM] SIGINT transition to <%= sigint %>");<% end %>
+        }
       }
 
       <% end %>
