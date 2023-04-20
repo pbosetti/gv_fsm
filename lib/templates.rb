@@ -268,7 +268,7 @@ module GV_FSM
         if (transition)
           transition(data);
       <% end %>
-        return new_state == <%= @prefix.upcase %>NO_CHANGE ? cur_state : new_state;
+        return new_state;
       };
 
       <% if @ino then %>
