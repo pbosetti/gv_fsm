@@ -10,7 +10,7 @@ require File.expand_path("../version.rb", __FILE__)
 module GV_FSM
   class FSM
     attr_reader :states, :transitions, :dotfile, :prefix, :error
-    attr_accessor :project_name, :description, :cname, :syslog, :ino, :sigint
+    attr_accessor :project_name, :description, :cname, :syslog, :ino, :sigint, :events
     include GV_FSM::Templates
 
     def initialize(filename = nil)
@@ -21,6 +21,7 @@ module GV_FSM
       @matrix = nil
       @nodemap = {}
       @sigint = nil
+      @events = false
       parse(filename) if filename
     end
 

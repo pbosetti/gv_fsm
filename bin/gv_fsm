@@ -52,16 +52,19 @@ op = OptionParser.new do |parser|
     sm.sigint = state
   end
 
+  parser.on("", "--events", "Enable event generation") do
+    sm.events = true
+  end
+
   parser.on("-h", "--help", "Display this help and exit") do
     puts parser
     exit
   end
-
+  
   parser.on("-v", "--version", "Output version information and exit") do
-    puts $PROGRAM_NAME + " " + GV_FSM::VERSION
+    puts "#{File.basename($PROGRAM_NAME, File.extname($PROGRAM_NAME))} #{GV_FSM::VERSION}"
     exit
   end
-
 end
 
 op.parse!
