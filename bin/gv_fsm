@@ -52,10 +52,6 @@ op = OptionParser.new do |parser|
     sm.sigint = state
   end
 
-  parser.on("", "--events", "Enable event generation") do
-    sm.events = true
-  end
-
   parser.on("-h", "--help", "Display this help and exit") do
     puts parser
     exit

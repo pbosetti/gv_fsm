@@ -1,3 +1,3 @@
 module GV_FSM
-  VERSION = "0.3.5"
+  VERSION = "0.4.4"
 end

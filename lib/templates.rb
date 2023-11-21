@@ -29,11 +29,16 @@ module GV_FSM
       <% else %>
       #include <arduino.h>
       <% end %>
+      #include <stdbool.h>
 
       // State data object
       // By default set to void; override this typedef or load the proper
       // header if you need
       typedef void <%= @prefix %>state_data_t;
+      // Event data object
+      // By default the struct is empty; put the data of the event inside
+      // the structure if you need or leave it empty
+      typedef struct { } <%= @prefix %>event_data_t;
       <% if !@ino then %>
       
       // NOTHING SHALL BE CHANGED AFTER THIS LINE!
@@ -60,11 +65,9 @@ module GV_FSM
       typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
       <% end %>
 
-      <% if @events %>
       // Functions to check and trigger an event
-      inline bool <%= @prefix %>is_event_triggered(<%= @prefix %>state_t next_state);
-      inline void <%= @prefix %>event_trigger(<%= @prefix %>state_t next_state);
-      <% end %>
+      bool <%= @prefix %>is_event_triggered();
+      void <%= @prefix %>event_trigger(<%= @prefix %>event_data_t *event);
 
       // State functions
       <% dest = destinations.dup %>
@@ -106,9 +109,6 @@ module GV_FSM
     EOH
 
     CC =<<~EOC
-      <% if @events %>
-      #include <stdbool.h>
-      <% end %>
       <% if !@ino then %>
       <% if @syslog then %>
       <% log = :syslog %>
@@ -134,13 +134,6 @@ module GV_FSM
       <% end %>
       <% placeholder = "Your Code Here" %>
       // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
-
-      <% if @events %>
-      // Event structure
-      typedef struct {
-        bool is_new;
-      } <%= @prefix %>event_t;
-      <% end %>
 
       // GLOBALS
       // State human-readable names
@@ -169,28 +162,20 @@ module GV_FSM
       // No transition functions
       <% end %>
 
-      <% if @events %>
-      // List of events
-      <%= @prefix %>event_t <%= @prefix %>events[<%= @prefix.upcase %>NUM_STATES] = {
-      <% sw = (@prefix + "STATE_" + states_list.max {|a, b| a.length <=> b.length} ).length %>
-      <% @states.each do |s| %>
-        [ <%= (@prefix.upcase + "STATE_" + s[:id].upcase).ljust(sw) %> ] = { .is_new = false },
-      <% end %>
-      }; 
-
-      // Previous state of the event
-      bool <%= @prefix %>events_was_new[<%= @prefix.upcase %>NUM_STATES] = { false };
+      // Triggered event
+      <%= @prefix %>event_data_t * <%= prefix %>fired_event = NULL;
 
       // Function to check if an event has fired
-      inline bool <%= @prefix %>is_event_triggered(<%= @prefix %>state_t next_state) {
-        return <%= @prefix %>events[next_state].is_new;
+      inline bool <%= @prefix %>is_event_triggered() {
+          return <%= prefix %>fired_event != NULL;
       }
 
       // Function to trigger an event
-      inline void <%= @prefix %>event_trigger(<%= @prefix %>state_t next_state) {
-        <%= @prefix %>events[next_state].is_new = true;
+      inline void <%= @prefix %>event_trigger(<%= @prefix %>event_data_t *event) {
+          if (<%= @prefix %>fired_event != NULL)
+              return;
+          <%= @prefix %>fired_event = event ? event : &(fsm_event_data_t){};
       }
-      <% end %>
       
 
       /*  ____  _        _       
@@ -301,18 +286,11 @@ module GV_FSM
        */
 
       <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data) {
-        <% if @events %>
-        // Save current state of the events
-        for (size_t i = 0; i < <%= @prefix.upcase %>NUM_STATES; ++i)
-          <%= prefix %>events_was_new[i] = <%= @prefix %>events[i].is_new;
-        <% end %>
+        <%= @prefix %>event_data_t *prev_ev = <%= @prefix %>fired_event;
         <%= @prefix %>state_t new_state = <%= @prefix %>state_table[cur_state](data);
-        <% if @events %>
-        // Reset events status
-        for (size_t i = 0; i < <%= @prefix.upcase %>NUM_STATES; ++i)
-          if (<%= @prefix %>events_was_new[i])
-            <%= @prefix %>events[i].is_new = false;
-        <% end %>
+        // Reset event status
+        if (prev_ev != NULL)
+          <%= @prefix %>fired_event = NULL;
         if (new_state == <%= @prefix.upcase %>NO_CHANGE) new_state = cur_state;
       <% if transition_functions_list.count > 0 then %>
         transition_func_t *transition = <%= @prefix %>transition_table[cur_state][new_state];
