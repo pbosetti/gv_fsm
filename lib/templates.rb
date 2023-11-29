@@ -174,7 +174,7 @@ module GV_FSM
       inline void <%= @prefix %>event_trigger(<%= @prefix %>event_data_t *event) {
           if (<%= @prefix %>fired_event != NULL)
               return;
-          <%= @prefix %>fired_event = event ? event : &(fsm_event_data_t){};
+          <%= @prefix %>fired_event = event ? event : &(<%= @prefix %>event_data_t){};
       }
       
 
