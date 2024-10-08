@@ -25,6 +25,9 @@ module GV_FSM
       <% if !@ino then %>
       #ifndef <%= File::basename(@cname).upcase %>_H
       #define <%= File::basename(@cname).upcase %>_H
+      #ifdef __cplusplus
+      extern "C" {
+      #endif
       #include <stdlib.h>
       <% else %>
       #include <arduino.h>
@@ -95,7 +98,10 @@ module GV_FSM
       <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data);
       
       <% if !@ino then %>
+      #ifdef __cplusplus
+      }
       #endif
+      #endif // <%= File::basename(@cname).upcase %>_H
       <% end %>
     EOH
 

@@ -144,8 +144,8 @@ module GV_FSM
       ext = @ino ? "cpp" : "c"
       fname = "#{filename}.#{ext}"
       File.open(fname, "w") do |f|
-        f.puts ERB.new(HEADER, 0, "<>").result(binding)
-        f.puts ERB.new(CC, 0, "<>").result(binding)
+        f.puts ERB.new(HEADER, trim_mode: "<>").result(binding)
+        f.puts ERB.new(CC, trim_mode: "<>").result(binding)
       end
       return fname
     end
@@ -153,8 +153,8 @@ module GV_FSM
     def generate_h(filename = @cname)
       fname = "#{filename}.h"
       File.open(fname, "w") do |f|
-        f.puts ERB.new(HEADER, 0, "<>").result(binding)
-        f.puts ERB.new(HH, 0, "<>").result(binding)
+        f.puts ERB.new(HEADER, trim_mode: "<>").result(binding)
+        f.puts ERB.new(HH, trim_mode: "<>").result(binding)
       end
       return fname
     end
