@@ -24,6 +24,10 @@ op = OptionParser.new do |parser|
     sm.description = desc
   end
 
+  parser.on("--cpp", "Generate C++17 sources") do
+    sm.plain_c = false
+  end
+
   parser.on("-o", "--output_file NAME", "Use NAME for generated .c and .h files") do |f|
     sm.cname = f
   end
@@ -60,6 +64,11 @@ op = OptionParser.new do |parser|
 end
 
 op.parse!
+
+if sm.ino then
+  sm.plain_c = true
+  sm.syslog = false
+end
 
 unless ARGV[0]
   STDERR.puts "ERROR: I need the path to a Graphviz file!\n\n"
@@ -104,7 +113,7 @@ if (sm.sigint) then
 end
 
 if options[:header] then
-  name = sm.generate_h 
+  name = sm.generate_h
   puts "Generated header #{name}"
 end
 

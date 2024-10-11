@@ -11,6 +11,7 @@ module GV_FSM
   class FSM
     attr_reader :states, :transitions, :dotfile, :prefix, :error
     attr_accessor :project_name, :description, :cname, :syslog, :ino, :sigint
+    attr_accessor :plain_c
     include GV_FSM::Templates
 
     def initialize(filename = nil)
@@ -21,6 +22,7 @@ module GV_FSM
       @matrix = nil
       @nodemap = {}
       @sigint = nil
+      @plain_c = true
       parse(filename) if filename
     end
 
@@ -141,20 +143,21 @@ module GV_FSM
     end
 
     def generate_c(filename = @cname)
-      ext = @ino ? "cpp" : "c"
+      ext = (@ino || !@plain_c) ? "cpp" : "c"
       fname = "#{filename}.#{ext}"
       File.open(fname, "w") do |f|
-        f.puts ERB.new(HEADER, trim_mode: "<>").result(binding)
-        f.puts ERB.new(CC, trim_mode: "<>").result(binding)
+        f.puts ERB.new(HEADER, trim_mode: "<>-").result(binding)
+        f.puts ERB.new(@plain_c ? CC : CPP, trim_mode: "<>-").result(binding)
       end
       return fname
     end
 
     def generate_h(filename = @cname)
-      fname = "#{filename}.h"
+      ext = @plain_c ? "h" : "hpp"
+      fname = "#{filename}.#{ext}"
       File.open(fname, "w") do |f|
-        f.puts ERB.new(HEADER, trim_mode: "<>").result(binding)
-        f.puts ERB.new(HH, trim_mode: "<>").result(binding)
+        f.puts ERB.new(HEADER, trim_mode: "<>-").result(binding)
+        f.puts ERB.new(@plain_c ? HH : HPP, trim_mode: "<>-").result(binding)
       end
       return fname
     end

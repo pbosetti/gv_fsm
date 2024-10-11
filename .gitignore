@@ -5,3 +5,7 @@ test*
 .vscode
 !example.c
 !example.h
+build/
+/simple*
+!/simple.dot
+/cpp/*

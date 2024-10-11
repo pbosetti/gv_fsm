@@ -1,6 +1,13 @@
 
 module GV_FSM
   module Templates
+
+    #   _   _ _____    _    ____  _____ ____  
+    #  | | | | ____|  / \  |  _ \| ____|  _ \ 
+    #  | |_| |  _|   / _ \ | | | |  _| | |_) |
+    #  |  _  | |___ / ___ \| |_| | |___|  _ < 
+    #  |_| |_|_____/_/   \_\____/|_____|_| \_\
+                                            
     HEADER =<<~EOHEADER
       /******************************************************************************
       Finite State Machine
@@ -20,6 +27,14 @@ module GV_FSM
       ******************************************************************************/
 
     EOHEADER
+
+    #    ____   _   _ _____    _    ____  _____ ____  
+    #   / ___| | | | | ____|  / \  |  _ \| ____|  _ \ 
+    #  | |     | |_| |  _|   / _ \ | | | |  _| | |_) |
+    #  | |___  |  _  | |___ / ___ \| |_| | |___|  _ < 
+    #   \____| |_| |_|_____/_/   \_\____/|_____|_| \_\
+                                                    
+                                                                    
 
     HH =<<~EOH
       <% if !@ino then %>
@@ -104,6 +119,13 @@ module GV_FSM
       #endif // <%= File::basename(@cname).upcase %>_H
       <% end %>
     EOH
+
+    #    ____   ____   ___  _   _ ____   ____ _____ 
+    #   / ___| / ___| / _ \| | | |  _ \ / ___| ____|
+    #  | |     \___ \| | | | | | | |_) | |   |  _|  
+    #  | |___   ___) | |_| | |_| |  _ <| |___| |___ 
+    #   \____| |____/ \___/ \___/|_| \_\\____|_____|
+                                                  
 
     CC =<<~EOC
       <% if !@ino then %>
@@ -310,5 +332,269 @@ module GV_FSM
       #endif
       <% end %>
     EOC
+
+
+    #    ____ ____  ____    _   _ _____    _    ____  _____ ____  
+    #   / ___|  _ \|  _ \  | | | | ____|  / \  |  _ \| ____|  _ \ 
+    #  | |   | |_) | |_) | | |_| |  _|   / _ \ | | | |  _| | |_) |
+    #  | |___|  __/|  __/  |  _  | |___ / ___ \| |_| | |___|  _ < 
+    #   \____|_|   |_|     |_| |_|_____/_/   \_\____/|_____|_| \_\
+                                                                
+
+    HPP =<<~EOHPP
+#ifndef <%= File::basename(@cname).upcase %>_HPP
+#define <%= File::basename(@cname).upcase %>_HPP
+#include <functional>
+#include <iostream>
+#include <map>
+#include <string>
+#include <tuple>
+<% if @syslog then -%>
+<% log = :syslog -%>
+#include <syslog.h>
+<% end -%>
+<% if sigint then -%>
+// Install signal handler: 
+// SIGINT requests a transition to state <%= self.sigint %>
+#include <csignal>
+<% end %>
+
+using namespace std::string_literals;
+
+namespace <%= @project_name || "FSM" %> {
+static bool running = true;
+
+typedef enum {
+<% @states.each do |s| -%>
+  STATE_<%= s[:id].upcase %>,
+<% end -%>
+  NUM_STATES,
+  NO_CHANGE
+} state_t;
+
+std::map<state_t, std::string> state_names = {
+<% @states.each do |s| -%>
+  {STATE_<%= s[:id].upcase %>, "<%= s[:id].upcase %>"s},
+<% end -%>
+  {NUM_STATES, "NUM_STATES"s},
+  {NO_CHANGE, "NO_CHANGE"s}
+};
+
+template <typename DATA_T> class FiniteStateMachine {
+
+using state_fun = std::function<state_t(DATA_T &data)>;
+using transition_fun = std::function<void(DATA_T &data)>;
+using operation_fun = std::function<void(DATA_T &data)>;
+
+private:
+  std::pair<state_t, state_t> _state{STATE_<%= states[0][:id].upcase %>, STATE_<%= states[0][:id].upcase %>};
+  std::map<state_t, state_fun> _states;
+  std::map<state_t, std::map<state_t, transition_fun>> _transitions;
+  std::function<void()> _timing_func;
+  DATA_T *_data;
+
+public:
+
+  FiniteStateMachine(DATA_T *data) : _data(data) {}
+  ~FiniteStateMachine(){};
+
+  void set_timing_function(std::function<void()> timing_func) {
+    _timing_func = timing_func;
+  }
+
+  void add_state(state_t name, state_fun func) { _states[name] = func; }
+
+  void add_transition(state_t from, state_t to, transition_fun func) {
+    _transitions[from][to] = func;
+  }
+
+  state_t state() { return _state.second; }
+
+  state_t operator()(state_t state) {
+    if (_states.find(state) == _states.end()) {
+      throw std::runtime_error("State not found: "s + state_names[state]);
+    }
+    return _states[state](*_data);
+  }
+
+  void operator()(state_t from, state_t to) {
+    if (_transitions.find(from) != _transitions.end()) {
+      if (_transitions[from].find(to) != _transitions[from].end()) {
+        _transitions[from][to](*_data);
+      }
+    }
+  }
+
+  void run(state_t state, operation_fun operation = nullptr) {
+    FSM::running = true;
+    state_t prev_state = state;
+    _state.first = state;
+    _state.second = state;
+<% if sigint then -%>
+    std::signal(SIGINT, [](int signum) {
+<% if log == :syslog then -%>
+      syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");
+<% end -%>
+      FSM::running = false; 
+    });
+<% end -%>
+    do {
+      (*this)(_state.first, _state.second);
+      if (operation) {
+        operation(*_data);
+      }
+      _state.first = _state.second;
+      _state.second = (*this)(_state.second);
+      if (_timing_func) {
+        _timing_func();
+      }
+      if (!FSM::running) {
+        _state.second = "<%= (@prefix+self.sigint ).upcase %>";
+        FSM::running = true;
+      }
+    } while (_state.second != "TERMINATE");
+<% if sigint then -%>
+    std::signal(SIGINT, SIG_DFL);
+<% end -%>
+  }
+
+  void run(operation_fun operation = nullptr) { run(STATE_<%= states[0][:id].upcase %>, operation); }
+
+}; // class FiniteStateMachine
+
+}; // namespace <%= @project_name || "FSM" %>
+
+#endif // <%= File::basename(@cname).upcase %>_HPP
+
+EOHPP
+
+
+    #    ____ ____  ____    ____   ___  _   _ ____   ____ _____ 
+    #   / ___|  _ \|  _ \  / ___| / _ \| | | |  _ \ / ___| ____|
+    #  | |   | |_) | |_) | \___ \| | | | | | | |_) | |   |  _|  
+    #  | |___|  __/|  __/   ___) | |_| | |_| |  _ <| |___| |___ 
+    #   \____|_|   |_|     |____/ \___/ \___/|_| \_\\____|_____|
+                                                              
+
+
+    CPP =<<~EOCPP
+<% if @syslog then -%>
+<% log = :syslog -%>
+#include <syslog.h>
+<% end -%>
+#include "<%= File::basename(@cname) %>.hpp"
+    
+using namespace std;
+    
+<% placeholder = "Your Code Here" %>
+// SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
+
+namespace <%= @project_name || "FSM" %> {
+
+template <typename T>
+FiniteStateMachine<T> create(T &data) {
+  auto fsm = FiniteStateMachine<T>(&data);
+
+  /*  ____  _        _       
+  * / ___|| |_ __ _| |_ ___ 
+  * \\___ \\| __/ _` | __/ _ \\
+  *  ___) | || (_| | ||  __/
+  * |____/ \\__\\__,_|\\__\\___|
+  *                         
+  *   __                  _   _                 
+  *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+  * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+  * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+  * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+  */                                             
+<% dest = destinations.dup -%>
+<% topo = self.topology -%>
+<% @states.each do |s| -%>
+<% stable = true if dest[s[:id]].include? s[:id] -%>
+<% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} -%>
+<% if dest[s[:id]].empty? or stable then
+  dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
+end %>
+  // Function to be executed in state <%= s[:id].upcase %>
+  // valid return states: <%= dest[s[:id]].join(", ") %>
+<% if sigint && stable && topo[:sources][0] != s[:id] then -%>
+  // SIGINT triggers an emergency transition to <%= self.sigint.upcase %>
+<% end -%>
+  fsm.add_state(FSM::STATE_<%= s[:id].upcase %>, [](T &data) -> FSM::state_t {
+    FSM::state_t next_state = FSM::<%= dest[s[:id]].first %>;
+<% if log == :syslog then -%>
+    syslog(LOG_INFO, "[FSM] In state <%= s[:id].upcase %>");
+<% end -%>
+    /* <%= placeholder %> */
+    
+    switch (next_state) {
+<% dest[s[:id]].each  do |str| -%>
+        case FSM::<%= str %>:
+<% end -%>
+        break;
+      default:
+<% if log == :syslog then -%>
+        syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
+<% end -%>
+        next_state = FSM::<%= @prefix.upcase %>NO_CHANGE;
+    }
+    return next_state;
+  });
+<% end -%>
+
+
+<% if transition_functions_list.count > 0 then -%>
+  /*  _____                    _ _   _              
+  * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
+  *   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
+  *   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
+  *   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
+  *                                                
+  *   __                  _   _                 
+  *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+  * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+  * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+  * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+  */                                              
+<% transition_functions_list.each do |t| -%>
+<% next if t == "NULL" -%>
+<% tpaths = transitions_paths[t] -%>
+
+  // This function is called in <%= tpaths.count %> transition<%= tpaths.count == 1 ? '' : 's' %>:
+<% tpaths.each_with_index do |e, i| -%>
+  // <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
+  fsm.add_transition(STATE_<%= e[:from].upcase %>, STATE_<%= e[:to].upcase %>, [](T &data) {
+<% if log == :syslog then -%>
+    syslog(LOG_INFO, "[FSM] State transition <%= t %>");
+<% end -%>
+    /* <%= placeholder %> */
+  });
+<% end -%>
+<% end -%>
+<% end -%>
+
+  return fsm;
+}
+
+}; // namespace <%= @project_name || "FSM" %>
+
+
+<% nsinks = topology[:sinks].count -%>
+// Example usage:
+#ifdef TEST_MAIN
+#include <unistd.h>
+
+struct Data {
+  int count;
+};
+
+int main() {
+  Data data = {1};
+  auto fsm = FSM::create(data);
+  return 0;
+}
+#endif // TEST_MAIN
+EOCPP
+
   end
 end
