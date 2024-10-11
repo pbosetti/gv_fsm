@@ -369,16 +369,32 @@ typedef enum {
   STATE_<%= s[:id].upcase %>,
 <% end -%>
   NUM_STATES,
-  NO_CHANGE
+  NO_CHANGE,
+  UNIMPLEMENTED
 } state_t;
 
-std::map<state_t, std::string> state_names = {
+std::map<state_t, char const *> state_names = {
 <% @states.each do |s| -%>
-  {STATE_<%= s[:id].upcase %>, "<%= s[:id].upcase %>"s},
+  {STATE_<%= s[:id].upcase %>, "<%= s[:id].upcase %>"},
 <% end -%>
-  {NUM_STATES, "NUM_STATES"s},
-  {NO_CHANGE, "NO_CHANGE"s}
+  {NUM_STATES, "NUM_STATES"},
+  {NO_CHANGE, "NO_CHANGE"}
 };
+
+// Custom state functions:
+<% @states.each do |s| -%>
+template<class T> 
+<%= @prefix %>state_t <%= s[:function] %>(T &data);
+<% end -%>
+
+<% if transition_functions_list.count > 0 then -%>
+// Custom transition functions:
+<% transition_functions_list.each do |t| -%>
+template<class T>
+void <%= t %>(T &data);
+<% end -%>
+<% end -%>
+
 
 template <typename DATA_T> class FiniteStateMachine {
 
@@ -395,7 +411,9 @@ private:
 
 public:
 
-  FiniteStateMachine(DATA_T *data) : _data(data) {}
+  FiniteStateMachine(DATA_T *data) : _data(data) {
+    install_functions();
+  }
   ~FiniteStateMachine(){};
 
   void set_timing_function(std::function<void()> timing_func) {
@@ -460,6 +478,56 @@ public:
 
   void run(operation_fun operation = nullptr) { run(STATE_<%= states[0][:id].upcase %>, operation); }
 
+  // install state and transition functions
+  void install_functions() {
+
+    // State functions
+<% dest = destinations.dup -%>
+<% @states.each do |s| -%>
+<% stable = true if dest[s[:id]].include? s[:id] -%>
+<% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} -%>
+<% if dest[s[:id]].empty? or stable then
+    dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
+end -%>
+    add_state(FSM::STATE_<%= s[:id].upcase %>, [](DATA_T &data) -> FSM::state_t {
+<% if log == :syslog then -%>
+      syslog(LOG_INFO, "[FSM] In state <%= s[:id].upcase %>");
+<% end -%>
+      FSM::state_t next_state = do_<%= s[:id] %>(data);
+    
+      switch (next_state) {
+      case FSM::UNIMPLEMENTED:
+        throw std::runtime_error("State function not fully implemented: "s + "<%= s[:id].upcase %>");
+        break;
+<% dest[s[:id]].each  do |str| -%>
+      case FSM::<%= str %>:
+<% end -%>
+        break;
+      default:
+<% if log == :syslog then -%>
+        syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
+<% end -%>
+        next_state = FSM::<%= @prefix.upcase %>NO_CHANGE;
+      }
+      return next_state;
+    });
+
+<% end -%>
+
+<% if transition_functions_list.count > 0 then -%>
+    // Transition functions
+<% transition_functions_list.each do |t| -%>
+    add_transition(STATE_<%= transitions_paths[t][0][:from].upcase %>, STATE_<%= transitions_paths[t][0][:to].upcase %>, [](DATA_T &data) {
+<% if log == :syslog then -%>
+      syslog(LOG_INFO, "[FSM] State transition <%= t %>");
+<% end -%>
+      <%= t %>(data);
+    });
+
+<% end -%>
+<% end -%>
+  }
+
 }; // class FiniteStateMachine
 
 }; // namespace <%= @project_name || "FSM" %>
@@ -491,22 +559,19 @@ using namespace std;
 
 namespace <%= @project_name || "FSM" %> {
 
-template <typename T>
-FiniteStateMachine<T> create(T &data) {
-  auto fsm = FiniteStateMachine<T>(&data);
 
-  /*  ____  _        _       
-  * / ___|| |_ __ _| |_ ___ 
-  * \\___ \\| __/ _` | __/ _ \\
-  *  ___) | || (_| | ||  __/
-  * |____/ \\__\\__,_|\\__\\___|
-  *                         
-  *   __                  _   _                 
-  *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-  * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
-  * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
-  * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
-  */                                             
+/*  ____  _        _       
+* / ___|| |_ __ _| |_ ___ 
+* \\___ \\| __/ _` | __/ _ \\
+*  ___) | || (_| | ||  __/
+* |____/ \\__\\__,_|\\__\\___|
+*                         
+*   __                  _   _                 
+*  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+* | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+* |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+* |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+*/                                             
 <% dest = destinations.dup -%>
 <% topo = self.topology -%>
 <% @states.each do |s| -%>
@@ -515,66 +580,48 @@ FiniteStateMachine<T> create(T &data) {
 <% if dest[s[:id]].empty? or stable then
   dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
 end %>
-  // Function to be executed in state <%= s[:id].upcase %>
-  // valid return states: <%= dest[s[:id]].join(", ") %>
+// Function to be executed in state <%= s[:id].upcase %>
+// valid return states: <%= dest[s[:id]].join(", ") %>
 <% if sigint && stable && topo[:sources][0] != s[:id] then -%>
-  // SIGINT triggers an emergency transition to <%= self.sigint.upcase %>
+// SIGINT triggers an emergency transition to <%= self.sigint.upcase %>
 <% end -%>
-  fsm.add_state(FSM::STATE_<%= s[:id].upcase %>, [](T &data) -> FSM::state_t {
-    FSM::state_t next_state = FSM::<%= dest[s[:id]].first %>;
-<% if log == :syslog then -%>
-    syslog(LOG_INFO, "[FSM] In state <%= s[:id].upcase %>");
-<% end -%>
-    /* <%= placeholder %> */
-    
-    switch (next_state) {
-<% dest[s[:id]].each  do |str| -%>
-        case FSM::<%= str %>:
-<% end -%>
-        break;
-      default:
-<% if log == :syslog then -%>
-        syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
-<% end -%>
-        next_state = FSM::<%= @prefix.upcase %>NO_CHANGE;
-    }
-    return next_state;
-  });
+template<class T> 
+<%= @prefix %>state_t <%= s[:function] %>(T &data) {
+  state_t next_state = FSM::UNIMPLEMENTED;
+  /* <%= placeholder %> */
+  
+  return next_state;
+}
 <% end -%>
 
 
 <% if transition_functions_list.count > 0 then -%>
-  /*  _____                    _ _   _              
-  * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
-  *   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
-  *   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
-  *   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
-  *                                                
-  *   __                  _   _                 
-  *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-  * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
-  * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
-  * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
-  */                                              
+/*  _____                    _ _   _              
+* |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
+*   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
+*   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
+*   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
+*                                                
+*   __                  _   _                 
+*  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+* | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+* |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+* |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+*/                                              
 <% transition_functions_list.each do |t| -%>
 <% next if t == "NULL" -%>
 <% tpaths = transitions_paths[t] -%>
 
-  // This function is called in <%= tpaths.count %> transition<%= tpaths.count == 1 ? '' : 's' %>:
+// This function is called in <%= tpaths.count %> transition<%= tpaths.count == 1 ? '' : 's' %>:
 <% tpaths.each_with_index do |e, i| -%>
-  // <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
-  fsm.add_transition(STATE_<%= e[:from].upcase %>, STATE_<%= e[:to].upcase %>, [](T &data) {
-<% if log == :syslog then -%>
-    syslog(LOG_INFO, "[FSM] State transition <%= t %>");
-<% end -%>
-    /* <%= placeholder %> */
-  });
-<% end -%>
-<% end -%>
-<% end -%>
-
-  return fsm;
+// <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
+template<class T> 
+void <%= t %>(T &data) {
+  /* <%= placeholder %> */
 }
+<% end -%>
+<% end -%>
+<% end -%>
 
 }; // namespace <%= @project_name || "FSM" %>
 
@@ -590,7 +637,7 @@ struct Data {
 
 int main() {
   Data data = {1};
-  auto fsm = FSM::create(data);
+  auto fsm = FSM::FiniteStateMachine(&data);
   return 0;
 }
 #endif // TEST_MAIN
