@@ -102,7 +102,7 @@ if !(top[:sources].count == 1 and top[:sinks].count <= 1) then
   exit 4
 end
 
-puts "Generating C functions for states: #{sm.states_list.join(", ")}."
+puts "Generating #{sm.plain_c ? "C" : "C++17"} functions for states: #{sm.states_list.join(", ")}."
 puts "                   for transition: #{sm.transition_functions_list.join(", ")}."
 
 if (sm.sigint) then

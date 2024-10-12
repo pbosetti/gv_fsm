@@ -37,88 +37,89 @@ module GV_FSM
                                                                     
 
     HH =<<~EOH
-      <% if !@ino then %>
-      #ifndef <%= File::basename(@cname).upcase %>_H
-      #define <%= File::basename(@cname).upcase %>_H
-      #ifdef __cplusplus
-      extern "C" {
-      #endif
-      #include <stdlib.h>
-      <% else %>
-      #include <arduino.h>
-      <% end %>
+<% if !@ino then %>
+#ifndef <%= File::basename(@cname).upcase %>_H
+#define <%= File::basename(@cname).upcase %>_H
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <stdlib.h>
+<% else -%>
+#include <arduino.h>
+<% end -%>
 
-      // State data object
-      // By default set to void; override this typedef or load the proper
-      // header if you need
-      typedef void <%= @prefix %>state_data_t;
-      <% if !@ino then %>
-      
-      // NOTHING SHALL BE CHANGED AFTER THIS LINE!
-      <% end %>
+// State data object
+// By default set to void; override this typedef or load the proper
+// header if you need
+typedef void <%= @prefix %>state_data_t;
+<% if !@ino then -%>
 
-      // List of states
-      typedef enum {
-      <% @states.each_with_index do |s, i| %>
-        <%= @prefix.upcase %>STATE_<%= s[:id].upcase %><%= i == 0 ? " = 0" : "" %>,  
-      <% end %>
-        <%= @prefix.upcase %>NUM_STATES,
-        <%= @prefix.upcase %>NO_CHANGE
-      } <%= @prefix %>state_t;
+// NOTHING SHALL BE CHANGED AFTER THIS LINE!
+<% end -%>
 
-      // State human-readable names
-      extern const char *<%= @prefix %>state_names[];
-      
-      <% if transition_functions_list.count > 0 then %>
-      // State function and state transition prototypes
-      typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
-      typedef void transition_func_t(<%= @prefix %>state_data_t *data);
-      <% else %>
-      // State function prototype
-      typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
-      <%end %>
+// List of states
+typedef enum {
+<% @states.each_with_index do |s, i| -%>
+  <%= @prefix.upcase %>STATE_<%= s[:id].upcase %><%= i == 0 ? " = 0" : "" %>,  
+<% end -%>
+  <%= @prefix.upcase %>NUM_STATES,
+  <%= @prefix.upcase %>NO_CHANGE
+} <%= @prefix %>state_t;
 
-      // State functions
-      <% dest = destinations.dup %>
-      <% @states.each do |s| %>
-      <% stable = true if dest[s[:id]].include? s[:id] %>
-      <% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} %>
-      <% if dest[s[:id]].empty? or stable then
-        dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
-      end %>
-      // Function to be executed in state <%= s[:id] %>
-      // valid return states: <%= dest[s[:id]].join(", ") %>
-      <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data);
-      <% end %>
+// State human-readable names
+extern const char *<%= @prefix %>state_names[];
+
+<% if transition_functions_list.count > 0 then -%>
+// State function and state transition prototypes
+typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
+typedef void transition_func_t(<%= @prefix %>state_data_t *data);
+<% else -%>
+// State function prototype
+typedef <%= @prefix %>state_t state_func_t(<%= @prefix %>state_data_t *data);
+<%end -%>
+
+// State functions
+<% dest = destinations.dup -%>
+<% @states.each do |s| -%>
+<% stable = true if dest[s[:id]].include? s[:id] -%>
+<% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} -%>
+<% if dest[s[:id]].empty? or stable then
+  dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
+end -%>
+// Function to be executed in state <%= s[:id] %>
+// valid return states: <%= dest[s[:id]].join(", ") %>
+<%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data);
+<% end -%>
 
 
-      // List of state functions
-      extern state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES];
-      
+// List of state functions
+extern state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES];
 
-      <% if transition_functions_list.count > 0 then %>
-      // Transition functions
-      <% transition_functions_list.each do |t| %>
-      <% next if t == "NULL" %>
-      void <%= t %>(<%= @prefix %>state_data_t *data);
-      <% end %>
 
-      // Table of transition functions
-      extern transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES];
-      <% else %>
-      // No transition functions
-      <% end %>
+<% if transition_functions_list.count > 0 then -%>
+// Transition functions
+<% transition_functions_list.each do |t| -%>
+<% next if t == "NULL" -%>
+void <%= t %>(<%= @prefix %>state_data_t *data);
+<% end -%>
 
-      // state manager
-      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data);
-      
-      <% if !@ino then %>
-      #ifdef __cplusplus
-      }
-      #endif
-      #endif // <%= File::basename(@cname).upcase %>_H
-      <% end %>
+// Table of transition functions
+extern transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES];
+<% else -%>
+// No transition functions
+<% end -%>
+
+// state manager
+<%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data);
+
+<% if !@ino then -%>
+#ifdef __cplusplus
+}
+#endif
+#endif // <%= File::basename(@cname).upcase %>_H
+<% end -%>
     EOH
+
 
     #    ____   ____   ___  _   _ ____   ____ _____ 
     #   / ___| / ___| / _ \| | | |  _ \ / ___| ____|
@@ -128,209 +129,211 @@ module GV_FSM
                                                   
 
     CC =<<~EOC
-      <% if !@ino then %>
-      <% if @syslog then %>
-      <% log = :syslog %>
-      #include <syslog.h>
-      <% end %>
-      <% else %>
-      <% if @syslog then log = :ino end %>
-      <% end %>
-      #include "<%= File::basename(@cname) %>.h"
-      
-      <% if sigint then %>// Install signal handler: 
-      // SIGINT requests a transition to state <%= self.sigint %>
-      #include <signal.h>
-      static int _exit_request = 0;
-      static void signal_handler(int signal) {
-        if (signal == SIGINT) {
-          _exit_request = 1;<% if log == :syslog then %>
-          syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");<% elsif log == :ino then %>
-          Serial.println("[FSM] SIGINT transition to <%= sigint %>");<% end %>
-        }
-      }
+<% if !@ino then -%>
+<% if @syslog then -%>
+<% log = :syslog %>
+#include <syslog.h>
+<% end -%>
+<% else -%>
+<% if @syslog then log = :ino end -%>
+<% end -%>
+#include "<%= File::basename(@cname) %>.h"
 
-      <% end %>
-      <% placeholder = "Your Code Here" %>
-      // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
+<% if sigint then %>// Install signal handler: 
+// SIGINT requests a transition to state <%= self.sigint %>
+#include <signal.h>
+static int _exit_request = 0;
+static void signal_handler(int signal) {
+  if (signal == SIGINT) {
+    _exit_request = 1;<% if log == :syslog then %>
+    syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");<% elsif log == :ino then %>
+    Serial.println("[FSM] SIGINT transition to <%= sigint %>");<% end %>
+  }
+}
 
-      // GLOBALS
-      // State human-readable names
-      const char *<%= @prefix %>state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
+<% end -%>
+<% placeholder = "Your Code Here" -%>
+// SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
 
-      // List of state functions
-      <% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length %>
-      state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES] = {
-      <% @states.each do |s| %>
-        <%= (s[:function] + ',').ljust(fw+1) %> // in state <%= s[:id] %>
-      <% end %>
-      };
-      <% if transition_functions_list.count > 0 then %>
-      
-      // Table of transition functions
-      transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES] = {
-      <% sl = states_list %>
-      <% fw = transition_functions_list.max {|a, b| a.length <=> b.length}.length %>
-      <% sw = [states_list, "states:"].flatten.max {|a, b| a.length <=> b.length}.length %>
-        /* <%= "states:".ljust(sw) %>     <%= sl.map {|e| e.ljust(fw) }.join(", ") %> */
-      <% transitions_map.each_with_index do |l, i| %>
-        /* <%= sl[i].ljust(sw) %> */ {<%= l.map {|e| e.ljust(fw)}.join(", ") %>}, 
-      <% end %>
-      };
-      <% else %>
-      // No transition functions
-      <% end %>
+// GLOBALS
+// State human-readable names
+const char *<%= @prefix %>state_names[] = {<%= states_list.map {|sn| '"'+sn+'"'}.join(", ") %>};
 
-      /*  ____  _        _       
-       * / ___|| |_ __ _| |_ ___ 
-       * \\___ \\| __/ _` | __/ _ \\
-       *  ___) | || (_| | ||  __/
-       * |____/ \\__\\__,_|\\__\\___|
-       *                         
-       *   __                  _   _                 
-       *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-       * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
-       * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
-       * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
-       */                                             
-      <% dest = destinations.dup %>
-      <% topo = self.topology %>
-      <% @states.each do |s| %>
-      <% stable = true if dest[s[:id]].include? s[:id] %>
-      <% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} %>
-      <% if dest[s[:id]].empty? or stable then
-        dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
-      end %>
-      // Function to be executed in state <%= s[:id] %>
-      // valid return states: <%= dest[s[:id]].join(", ") %>
-      <% if sigint && stable && topo[:sources][0] != s[:id] then %>
-      // SIGINT triggers an emergency transition to <%= self.sigint %>
-      <% end %>
-      <%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
-        <%= @prefix %>state_t next_state = <%= dest[s[:id]].first %>;
-        <% if sigint && topo[:sources][0] == s[:id] then %>signal(SIGINT, signal_handler); 
-        <% end %>
-      <% if log == :syslog then %>
-        syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
-      <% elsif log == :ino then %>
-        Serial.println("[FSM] In state <%= s[:id] %>");
-      <% end %>
-        /* <%= placeholder %> */
-        
-        switch (next_state) {
-      <% dest[s[:id]].each  do |str| %>
-          case <%= str %>:
-      <% end %>
-            break;
-          default:
-      <% if log == :syslog then %>
-            syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
-      <% elsif log == :ino then %>
-            Serial.print("[FSM] Cannot pass from <%= s[:id] %> to ");
-            Serial.print(<%= @prefix %>state_names[next_state]);
-            Serial.println(", remaining in this state");
-      <% end %>
-            next_state = <%= @prefix.upcase %>NO_CHANGE;
-        }
-        <% if sigint && stable && topo[:sources][0] != s[:id] then %>
-        // SIGINT transition override
-        if (_exit_request) next_state = <%= (@prefix+"STATE_"+self.sigint ).upcase %>;
-        <% end %>
-        return next_state;
-      }
+// List of state functions
+<% fw = state_functions_list.max {|a, b| a.length <=> b.length}.length -%>
+state_func_t *const <%= @prefix %>state_table[<%= @prefix.upcase %>NUM_STATES] = {
+<% @states.each do |s| -%>
+  <%= (s[:function] + ',').ljust(fw+1) %> // in state <%= s[:id] %>
+<% end -%>
+};
+<% if transition_functions_list.count > 0 then -%>
 
-      <% end %>
+// Table of transition functions
+transition_func_t *const <%= @prefix %>transition_table[<%= @prefix.upcase %>NUM_STATES][<%= @prefix.upcase %>NUM_STATES] = {
+<% sl = states_list -%>
+<% fw = transition_functions_list.max {|a, b| a.length <=> b.length}.length -%>
+<% sw = [states_list, "states:"].flatten.max {|a, b| a.length <=> b.length}.length -%>
+  /* <%= "states:".ljust(sw) %>     <%= sl.map {|e| e.ljust(fw) }.join(", ") %> */
+<% transitions_map.each_with_index do |l, i| -%>
+  /* <%= sl[i].ljust(sw) %> */ {<%= l.map {|e| e.ljust(fw)}.join(", ") %>}, 
+<% end -%>
+};
+<% else -%>
+// No transition functions
+<% end -%>
 
-      <% if transition_functions_list.count > 0 then %>
-      /*  _____                    _ _   _              
-       * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
-       *   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
-       *   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
-       *   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
-       *                                                
-       *   __                  _   _                 
-       *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-       * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
-       * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
-       * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
-       */    
-                                               
-      <% transition_functions_list.each do |t| %>
-      <% next if t == "NULL" %>
-      <% tpaths = transitions_paths[t] %>
-      // This function is called in <%= tpaths.count %> transition<%= tpaths.count == 1 ? '' : 's' %>:
-      <% tpaths.each_with_index do |e, i| %>
-      // <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
-      <% end %>
-      void <%= t %>(<%= @prefix %>state_data_t *data) {
-      <% if log == :syslog then %>
-        syslog(LOG_INFO, "[FSM] State transition <%= t %>");
-      <% elsif log == :ino then %>
-        Serial.println("[FSM] State transition <%= t %>");
-      <% end %>
-        /* <%= placeholder %> */
-      }
+/*  ____  _        _       
+ * / ___|| |_ __ _| |_ ___ 
+ * \\___ \\| __/ _` | __/ _ \\
+ *  ___) | || (_| | ||  __/
+ * |____/ \\__\\__,_|\\__\\___|
+ *                         
+ *   __                  _   _                 
+ *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+ * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+ * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+ * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+ */                                             
+<% dest = destinations.dup -%>
+<% topo = self.topology -%>
+<% @states.each do |s| -%>
+<% stable = true if dest[s[:id]].include? s[:id] -%>
+<% dest[s[:id]].map! {|n| (@prefix+"STATE_"+n).upcase} -%>
+<% if dest[s[:id]].empty? or stable then
+  dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
+end %>
+// Function to be executed in state <%= s[:id] %>
+// valid return states: <%= dest[s[:id]].join(", ") %>
+<% if sigint && stable && topo[:sources][0] != s[:id] then -%>
+// SIGINT triggers an emergency transition to <%= self.sigint %>
+<% end -%>
+<%= @prefix %>state_t <%= s[:function] %>(<%= @prefix %>state_data_t *data) {
+  <%= @prefix %>state_t next_state = <%= dest[s[:id]].first -%>;
+<% if sigint && topo[:sources][0] == s[:id] then -%>
+  signal(SIGINT, signal_handler); 
+  <% end -%>
+<% if log == :syslog then -%>
+  syslog(LOG_INFO, "[FSM] In state <%= s[:id] %>");
+<% elsif log == :ino then -%>
+  Serial.println("[FSM] In state <%= s[:id] %>");
+<% end -%>
+  /* <%= placeholder %> */
+  
+  switch (next_state) {
+<% dest[s[:id]].each  do |str| -%>
+  case <%= str %>:
+<% end -%>
+    break;
+  default:
+<% if log == :syslog then -%>
+    syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
+<% elsif log == :ino then -%>
+    Serial.print("[FSM] Cannot pass from <%= s[:id] %> to ");
+    Serial.print(<%= @prefix %>state_names[next_state]);
+    Serial.println(", remaining in this state");
+<% end -%>
+    next_state = <%= @prefix.upcase %>NO_CHANGE;
+  }
+<% if sigint && stable && topo[:sources][0] != s[:id] then -%>
+  // SIGINT transition override
+  if (_exit_request) 
+    next_state = <%= (@prefix+"STATE_"+self.sigint ).upcase %>;
+<% end %>
+  return next_state;
+}
 
-      <% end %>
-      <% end %>
+<% end %>
 
-      /*  ____  _        _        
-       * / ___|| |_ __ _| |_ ___  
-       * \\___ \\| __/ _` | __/ _ \\
-       *  ___) | || (_| | ||  __/ 
-       * |____/ \\__\\__,_|\\__\\___| 
-       *                          
-       *                                              
-       *  _ __ ___   __ _ _ __   __ _  __ _  ___ _ __ 
-       * | '_ ` _ \\ / _` | '_ \\ / _` |/ _` |/ _ \\ '__|
-       * | | | | | | (_| | | | | (_| | (_| |  __/ |   
-       * |_| |_| |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|   
-       *                              |___/           
-       */
+<% if transition_functions_list.count > 0 then -%>
+/*  _____                    _ _   _              
+ * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
+ *   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
+ *   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
+ *   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
+ *                                                
+ *   __                  _   _                 
+ *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+ * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+ * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+ * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+ */    
+                                          
+<% transition_functions_list.each do |t| -%>
+<% next if t == "NULL" -%>
+<% tpaths = transitions_paths[t] -%>
+// This function is called in <%= tpaths.count %> transition<%= tpaths.count == 1 ? '' : 's' %>:
+<% tpaths.each_with_index do |e, i| -%>
+// <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
+<% end -%>
+void <%= t %>(<%= @prefix %>state_data_t *data) {
+<% if log == :syslog then -%>
+  syslog(LOG_INFO, "[FSM] State transition <%= t %>");
+<% elsif log == :ino then -%>
+  Serial.println("[FSM] State transition <%= t %>");
+<% end -%>
+  /* <%= placeholder %> */
+}
 
-      <%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data) {
-        <%= @prefix %>state_t new_state = <%= @prefix %>state_table[cur_state](data);
-        if (new_state == <%= @prefix.upcase %>NO_CHANGE) new_state = cur_state;
-      <% if transition_functions_list.count > 0 then %>
-        transition_func_t *transition = <%= @prefix %>transition_table[cur_state][new_state];
-        if (transition)
-          transition(data);
-      <% end %>
-        return new_state;
-      };
+<% end -%>
+<% end -%>
 
-      <% if @ino then %>
-      /* Example usage:
-      <%= @prefix %>state_data_t data = {count: 1};
+/*  ____  _        _        
+ * / ___|| |_ __ _| |_ ___  
+ * \\___ \\| __/ _` | __/ _ \\
+ *  ___) | || (_| | ||  __/ 
+ * |____/ \\__\\__,_|\\__\\___| 
+ *                          
+ *                                              
+ *  _ __ ___   __ _ _ __   __ _  __ _  ___ _ __ 
+ * | '_ ` _ \\ / _` | '_ \\ / _` |/ _` |/ _ \\ '__|
+ * | | | | | | (_| | | | | (_| | (_| |  __/ |   
+ * |_| |_| |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|   
+ *                              |___/           
+ */
 
-      void loop() {
-        static <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
-        cur_state = <%= @prefix %>run_state(cur_state, &data);
-      }
-      */
-      <% else %>
-      <% nsinks = topology[:sinks].count %>
-      #ifdef TEST_MAIN
-      #include <unistd.h>
-      int main() {
-        <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_<%= @states.first[:id].upcase %>;
-      <% if @syslog then %>
-        openlog("SM", LOG_PID | LOG_PERROR, LOG_USER);
-        syslog(LOG_INFO, "Starting SM");
-      <% end %>
-        do {
-          cur_state = <%= @prefix %>run_state(cur_state, NULL);
-          sleep(1);
-      <% if nsinks == 1 %>
-        } while (cur_state != <%= @prefix.upcase %>STATE_<%= topology[:sinks][0].upcase %>);
-        <%= @prefix %>run_state(cur_state, NULL);
-      <% else %>
-        } while (1);
-      <% end %>
-        return 0;
-      }
-      #endif
-      <% end %>
+<%= @prefix %>state_t <%= @prefix %>run_state(<%= @prefix %>state_t cur_state, <%= @prefix %>state_data_t *data) {
+  <%= @prefix %>state_t new_state = <%= @prefix %>state_table[cur_state](data);
+  if (new_state == <%= @prefix.upcase %>NO_CHANGE) new_state = cur_state;
+<% if transition_functions_list.count > 0 then %>
+  transition_func_t *transition = <%= @prefix %>transition_table[cur_state][new_state];
+  if (transition)
+    transition(data);
+<% end %>
+  return new_state;
+};
+
+<% if @ino then %>
+/* Example usage:
+<%= @prefix %>state_data_t data = {count: 1};
+
+void loop() {
+  static <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_INIT;
+  cur_state = <%= @prefix %>run_state(cur_state, &data);
+}
+*/
+<% else %>
+<% nsinks = topology[:sinks].count %>
+#ifdef TEST_MAIN
+#include <unistd.h>
+int main() {
+  <%= @prefix %>state_t cur_state = <%= @prefix.upcase %>STATE_<%= @states.first[:id].upcase %>;
+<% if @syslog then %>
+  openlog("SM", LOG_PID | LOG_PERROR, LOG_USER);
+  syslog(LOG_INFO, "Starting SM");
+<% end %>
+  do {
+    cur_state = <%= @prefix %>run_state(cur_state, NULL);
+    sleep(1);
+<% if nsinks == 1 %>
+  } while (cur_state != <%= @prefix.upcase %>STATE_<%= topology[:sinks][0].upcase %>);
+  <%= @prefix %>run_state(cur_state, NULL);
+<% else %>
+  } while (1);
+<% end %>
+  return 0;
+}
+#endif
+<% end %>
     EOC
 
 
@@ -362,8 +365,9 @@ module GV_FSM
 using namespace std::string_literals;
 
 namespace <%= @project_name || "FSM" %> {
-static bool running = true;
+static bool <%= self.sigint %>_requested = false;
 
+// List of states
 typedef enum {
 <% @states.each do |s| -%>
   STATE_<%= s[:id].upcase %>,
@@ -373,6 +377,7 @@ typedef enum {
   UNIMPLEMENTED
 } state_t;
 
+// State human-readable names
 std::map<state_t, char const *> state_names = {
 <% @states.each do |s| -%>
   {STATE_<%= s[:id].upcase %>, "<%= s[:id].upcase %>"},
@@ -395,9 +400,11 @@ void <%= t %>(T &data);
 <% end -%>
 <% end -%>
 
+// Finite State Machine class
+template <typename DATA_T> 
+class FiniteStateMachine {
 
-template <typename DATA_T> class FiniteStateMachine {
-
+// Function templates
 using state_fun = std::function<state_t(DATA_T &data)>;
 using transition_fun = std::function<void(DATA_T &data)>;
 using operation_fun = std::function<void(DATA_T &data)>;
@@ -426,7 +433,8 @@ public:
     _transitions[from][to] = func;
   }
 
-  state_t state() { return _state.second; }
+  inline state_t state() { return _state.second; }
+  inline state_t prev_state() { return _state.first; }
 
   state_t operator()(state_t state) {
     if (_states.find(state) == _states.end()) {
@@ -443,8 +451,9 @@ public:
     }
   }
 
+  // Run the FSM from a given state
   void run(state_t state, operation_fun operation = nullptr) {
-    FSM::running = true;
+    FSM::<%= self.sigint %>_requested = false;
     state_t prev_state = state;
     _state.first = state;
     _state.second = state;
@@ -453,7 +462,7 @@ public:
 <% if log == :syslog then -%>
       syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");
 <% end -%>
-      FSM::running = false; 
+      FSM::<%= self.sigint %>_requested = true; 
     });
 <% end -%>
     do {
@@ -466,16 +475,13 @@ public:
       if (_timing_func) {
         _timing_func();
       }
-      if (!FSM::running) {
-        _state.second = "<%= (@prefix+self.sigint ).upcase %>";
-        FSM::running = true;
-      }
-    } while (_state.second != "TERMINATE");
+    } while (_state.second != STATE_<%= self.sigint.upcase %>);
 <% if sigint then -%>
     std::signal(SIGINT, SIG_DFL);
 <% end -%>
   }
 
+  // Run the FSM from the initial state
   void run(operation_fun operation = nullptr) { run(STATE_<%= states[0][:id].upcase %>, operation); }
 
   // install state and transition functions
@@ -509,6 +515,10 @@ end -%>
 <% end -%>
         next_state = FSM::<%= @prefix.upcase %>NO_CHANGE;
       }
+<% if sigint && stable && self.topology[:sources][0] != s[:id] then -%>
+      // SIGINT transition override
+      if (<%= self.sigint %>_requested) next_state = <%= (@prefix+"STATE_"+self.sigint ).upcase %>;
+<% end -%>
       return next_state;
     });
 
@@ -557,21 +567,21 @@ using namespace std;
 <% placeholder = "Your Code Here" %>
 // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
 
+
 namespace <%= @project_name || "FSM" %> {
 
-
 /*  ____  _        _       
-* / ___|| |_ __ _| |_ ___ 
-* \\___ \\| __/ _` | __/ _ \\
-*  ___) | || (_| | ||  __/
-* |____/ \\__\\__,_|\\__\\___|
-*                         
-*   __                  _   _                 
-*  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-* | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
-* |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
-* |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
-*/                                             
+ * / ___|| |_ __ _| |_ ___ 
+ * \\___ \\| __/ _` | __/ _ \\
+ *  ___) | || (_| | ||  __/
+ * |____/ \\__\\__,_|\\__\\___|
+ *                         
+ *   __                  _   _                 
+ *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+ * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+ * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+ * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+ */                                             
 <% dest = destinations.dup -%>
 <% topo = self.topology -%>
 <% @states.each do |s| -%>
@@ -580,10 +590,10 @@ namespace <%= @project_name || "FSM" %> {
 <% if dest[s[:id]].empty? or stable then
   dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
 end %>
-// Function to be executed in state <%= s[:id].upcase %>
+// Function to be executed in state STATE_<%= s[:id].upcase %>
 // valid return states: <%= dest[s[:id]].join(", ") %>
 <% if sigint && stable && topo[:sources][0] != s[:id] then -%>
-// SIGINT triggers an emergency transition to <%= self.sigint.upcase %>
+// SIGINT triggers an emergency transition to STATE_<%= self.sigint.upcase %>
 <% end -%>
 template<class T> 
 <%= @prefix %>state_t <%= s[:function] %>(T &data) {
@@ -597,29 +607,30 @@ template<class T>
 
 <% if transition_functions_list.count > 0 then -%>
 /*  _____                    _ _   _              
-* |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
-*   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
-*   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
-*   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
-*                                                
-*   __                  _   _                 
-*  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
-* | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
-* |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
-* |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
-*/                                              
+ * |_   _| __ __ _ _ __  ___(_) |_(_) ___  _ __   
+ *   | || '__/ _` | '_ \\/ __| | __| |/ _ \\| '_ \\
+ *   | || | | (_| | | | \\__ \\ | |_| | (_) | | | | 
+ *   |_||_|  \\__,_|_| |_|___/_|\\__|_|\\___/|_| |_| 
+ *                                                
+ *   __                  _   _                 
+ *  / _|_   _ _ __   ___| |_(_) ___  _ __  ___ 
+ * | |_| | | | '_ \\ / __| __| |/ _ \\| '_ \\/ __|
+ * |  _| |_| | | | | (__| |_| | (_) | | | \\__ \\
+ * |_|  \\__,_|_| |_|\\___|\\__|_|\\___/|_| |_|___/
+ */                                              
+
 <% transition_functions_list.each do |t| -%>
 <% next if t == "NULL" -%>
 <% tpaths = transitions_paths[t] -%>
-
 // This function is called in <%= tpaths.count %> transition<%= tpaths.count == 1 ? '' : 's' %>:
 <% tpaths.each_with_index do |e, i| -%>
 // <%= i+1 %>. from <%= e[:from] %> to <%= e[:to] %>
-template<class T> 
+<% end -%>
+template<class T>
 void <%= t %>(T &data) {
   /* <%= placeholder %> */
 }
-<% end -%>
+
 <% end -%>
 <% end -%>
 
