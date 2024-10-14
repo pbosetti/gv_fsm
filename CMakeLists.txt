@@ -14,7 +14,7 @@ add_custom_target(build_gem
 )
 
 add_custom_target(gv_fsm
-  COMMAND gv_fsm -k stop --cpp simple.dot
+  COMMAND gv_fsm -k stop -d "gem testing example" --cpp simple.dot
   WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
   COMMENT "Creating simple.cpp from simple.dot"
 )

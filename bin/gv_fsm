@@ -16,8 +16,8 @@ op = OptionParser.new do |parser|
   EOB
 
   parser.on("-p", "--project PROJECT_NAME",
-            "Set the project name to PROJECT_NAME") do |pn|
-    sm.project_name = pn
+            "Set the project name to PROJECT_NAME (in C++ also namespace)") do |pn|
+    sm.project_name = pn.gsub(" ", "_")
   end
 
   parser.on("-d", "--description DESCRIPTION", "Use DESCRITION string in header") do |desc|

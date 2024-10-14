@@ -363,27 +363,28 @@ int main() {
 <% end %>
 
 using namespace std::string_literals;
-
-namespace <%= @project_name || "FSM" %> {
+<% ns = @project_name || "FSM" -%>
+namespace <%= ns %> {
 static bool <%= self.sigint %>_requested = false;
 
 // List of states
 typedef enum {
 <% @states.each do |s| -%>
-  STATE_<%= s[:id].upcase %>,
+  <%= @prefix.upcase %>STATE_<%= s[:id].upcase %>,
 <% end -%>
-  NUM_STATES,
-  NO_CHANGE,
-  UNIMPLEMENTED
-} state_t;
+  <%= @prefix.upcase %>NUM_STATES,
+  <%= @prefix.upcase %>NO_CHANGE,
+  <%= @prefix.upcase %>UNIMPLEMENTED
+} <%= @prefix %>state_t;
 
 // State human-readable names
-std::map<state_t, char const *> state_names = {
+std::map<<%= @prefix %>state_t, char const *> state_names = {
 <% @states.each do |s| -%>
-  {STATE_<%= s[:id].upcase %>, "<%= s[:id].upcase %>"},
+  {<%= @prefix.upcase %>STATE_<%= s[:id].upcase %>, "<%= s[:id].upcase %>"},
 <% end -%>
-  {NUM_STATES, "NUM_STATES"},
-  {NO_CHANGE, "NO_CHANGE"}
+  {<%= @prefix.upcase %>NUM_STATES, "NUM_STATES"},
+  {<%= @prefix.upcase %>NO_CHANGE, "NO_CHANGE"},
+  {<%= @prefix.upcase %>UNIMPLEMENTED, "UNIMPLEMENTED"}
 };
 
 // Custom state functions:
@@ -405,14 +406,14 @@ template <typename DATA_T>
 class FiniteStateMachine {
 
 // Function templates
-using state_fun = std::function<state_t(DATA_T &data)>;
+using state_fun = std::function<<%= @prefix %>state_t(DATA_T &data)>;
 using transition_fun = std::function<void(DATA_T &data)>;
 using operation_fun = std::function<void(DATA_T &data)>;
 
 private:
-  std::pair<state_t, state_t> _state{STATE_<%= states[0][:id].upcase %>, STATE_<%= states[0][:id].upcase %>};
-  std::map<state_t, state_fun> _states;
-  std::map<state_t, std::map<state_t, transition_fun>> _transitions;
+  std::pair<<%= @prefix %>state_t, <%= @prefix %>state_t> _state{<%= @prefix.upcase %>STATE_<%= states[0][:id].upcase %>, <%= @prefix.upcase %>STATE_<%= states[0][:id].upcase %>};
+  std::map<<%= @prefix %>state_t, state_fun> _states;
+  std::map<<%= @prefix %>state_t, std::map<<%= @prefix %>state_t, transition_fun>> _transitions;
   std::function<void()> _timing_func;
   DATA_T *_data;
 
@@ -427,23 +428,24 @@ public:
     _timing_func = timing_func;
   }
 
-  void add_state(state_t name, state_fun func) { _states[name] = func; }
+  void add_state(<%= @prefix %>state_t name, state_fun func) { _states[name] = func; }
 
-  void add_transition(state_t from, state_t to, transition_fun func) {
+  void add_transition(<%= @prefix %>state_t from, <%= @prefix %>state_t to, transition_fun func) {
     _transitions[from][to] = func;
   }
 
-  inline state_t state() { return _state.second; }
-  inline state_t prev_state() { return _state.first; }
+  inline <%= @prefix %>state_t state() { return _state.second; }
+  inline std::string state_name() { return std::string(state_names[_state.second]); }
+  inline <%= @prefix %>state_t prev_state() { return _state.first; }
 
-  state_t operator()(state_t state) {
+  <%= @prefix %>state_t operator()(<%= @prefix %>state_t state) {
     if (_states.find(state) == _states.end()) {
       throw std::runtime_error("State not found: "s + state_names[state]);
     }
     return _states[state](*_data);
   }
 
-  void operator()(state_t from, state_t to) {
+  void operator()(<%= @prefix %>state_t from, <%= @prefix %>state_t to) {
     if (_transitions.find(from) != _transitions.end()) {
       if (_transitions[from].find(to) != _transitions[from].end()) {
         _transitions[from][to](*_data);
@@ -452,9 +454,9 @@ public:
   }
 
   // Run the FSM from a given state
-  void run(state_t state, operation_fun operation = nullptr) {
-    FSM::<%= self.sigint %>_requested = false;
-    state_t prev_state = state;
+  void run(<%= @prefix %>state_t state, operation_fun operation = nullptr) {
+    <%= ns %>::<%= self.sigint %>_requested = false;
+    <%= @prefix %>state_t prev_state = state;
     _state.first = state;
     _state.second = state;
 <% if sigint then -%>
@@ -462,7 +464,7 @@ public:
 <% if log == :syslog then -%>
       syslog(LOG_WARNING, "[FSM] SIGINT transition to <%= sigint %>");
 <% end -%>
-      FSM::<%= self.sigint %>_requested = true; 
+      <%= ns %>::<%= self.sigint %>_requested = true; 
     });
 <% end -%>
     do {
@@ -475,14 +477,16 @@ public:
       if (_timing_func) {
         _timing_func();
       }
-    } while (_state.second != STATE_<%= self.sigint.upcase %>);
+    } while (_state.second != <%= @prefix.upcase %>STATE_<%= topology[:sinks][0].upcase %>);
+    // Call the exit state once more:
+    (*this)(<%= @prefix.upcase %>STATE_<%= topology[:sinks][0].upcase %>);
 <% if sigint then -%>
     std::signal(SIGINT, SIG_DFL);
 <% end -%>
   }
 
   // Run the FSM from the initial state
-  void run(operation_fun operation = nullptr) { run(STATE_<%= states[0][:id].upcase %>, operation); }
+  void run(operation_fun operation = nullptr) { run(<%= @prefix.upcase %>STATE_<%= states[0][:id].upcase %>, operation); }
 
   // install state and transition functions
   void install_functions() {
@@ -495,25 +499,25 @@ public:
 <% if dest[s[:id]].empty? or stable then
     dest[s[:id]].unshift @prefix.upcase+"NO_CHANGE"
 end -%>
-    add_state(FSM::STATE_<%= s[:id].upcase %>, [](DATA_T &data) -> FSM::state_t {
+    add_state(<%= ns %>::<%= @prefix.upcase %>STATE_<%= s[:id].upcase %>, [](DATA_T &data) -> <%= ns %>::<%= @prefix %>state_t {
 <% if log == :syslog then -%>
       syslog(LOG_INFO, "[FSM] In state <%= s[:id].upcase %>");
 <% end -%>
-      FSM::state_t next_state = do_<%= s[:id] %>(data);
+      <%= ns %>::<%= @prefix %>state_t next_state = <%= @prefix%>do_<%= s[:id] %>(data);
     
       switch (next_state) {
-      case FSM::UNIMPLEMENTED:
+      case <%= ns %>::<%= @prefix.upcase %>UNIMPLEMENTED:
         throw std::runtime_error("State function not fully implemented: "s + "<%= s[:id].upcase %>");
         break;
 <% dest[s[:id]].each  do |str| -%>
-      case FSM::<%= str %>:
+      case <%= ns %>::<%= str %>:
 <% end -%>
         break;
       default:
 <% if log == :syslog then -%>
-        syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", <%= @prefix %>state_names[next_state]);
+        syslog(LOG_WARNING, "[FSM] Cannot pass from <%= s[:id] %> to %s, remaining in this state", state_names[next_state]);
 <% end -%>
-        next_state = FSM::<%= @prefix.upcase %>NO_CHANGE;
+        next_state = <%= ns %>::<%= @prefix.upcase %>NO_CHANGE;
       }
 <% if sigint && stable && self.topology[:sources][0] != s[:id] then -%>
       // SIGINT transition override
@@ -527,7 +531,7 @@ end -%>
 <% if transition_functions_list.count > 0 then -%>
     // Transition functions
 <% transition_functions_list.each do |t| -%>
-    add_transition(STATE_<%= transitions_paths[t][0][:from].upcase %>, STATE_<%= transitions_paths[t][0][:to].upcase %>, [](DATA_T &data) {
+    add_transition(<%= @prefix.upcase %>STATE_<%= transitions_paths[t][0][:from].upcase %>, <%= @prefix.upcase %>STATE_<%= transitions_paths[t][0][:to].upcase %>, [](DATA_T &data) {
 <% if log == :syslog then -%>
       syslog(LOG_INFO, "[FSM] State transition <%= t %>");
 <% end -%>
@@ -563,6 +567,7 @@ EOHPP
 #include "<%= File::basename(@cname) %>.hpp"
     
 using namespace std;
+<% ns = @project_name || "FSM" -%>
     
 <% placeholder = "Your Code Here" %>
 // SEARCH FOR <%= placeholder %> FOR CODE INSERTION POINTS!
@@ -597,7 +602,7 @@ end %>
 <% end -%>
 template<class T> 
 <%= @prefix %>state_t <%= s[:function] %>(T &data) {
-  state_t next_state = FSM::UNIMPLEMENTED;
+  <%= @prefix %>state_t next_state = <%= ns %>::<%= @prefix.upcase %>UNIMPLEMENTED;
   /* <%= placeholder %> */
   
   return next_state;
@@ -641,6 +646,7 @@ void <%= t %>(T &data) {
 // Example usage:
 #ifdef TEST_MAIN
 #include <unistd.h>
+#include <thread>
 
 struct Data {
   int count;
@@ -648,7 +654,13 @@ struct Data {
 
 int main() {
   Data data = {1};
-  auto fsm = FSM::FiniteStateMachine(&data);
+  auto fsm = <%= ns %>::FiniteStateMachine(&data);
+  fsm.set_timing_function([]() {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  });
+  fsm.run([&](Data &s) {
+    std::cout << "State: " << fsm.state() << " data: " << s.count << std::endl;
+  });
   return 0;
 }
 #endif // TEST_MAIN
