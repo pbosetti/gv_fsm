@@ -38,6 +38,21 @@ The main interface to the FSM in C is the `run_state` function. See at the end o
 
 If you need an FSM for your Arduino, you can generate it with the command option `--ino`: this will generate a `.h` and a `.cpp` files, omitting all instructions that are not available on the Arduino (e.g. the `syslog` calls, which are replaced with `Serial.print calls`). Load these files in the IDE, require the header from the main `.ino` file, and call the FSM manager function from within the main `loop()` function.
 
+## NEW in version 0.4
+
+Gem version 0.4 introduces a new CLI option that enables the generation of C++17 code. This is done by adding the `--cpp` option to the command line.
+
+The generated code is easier to use than the C version:
+
+* the `FiniteStateMachine` class is a template class that accepts the state data type as template parameter
+* almost all the boilerplate code is hidden in the `FiniteStateMachine` class header file, **including state change checks**. Under normal circumstances, you **do not need to edit** this file
+* the source file only has a list of state functions and transition functions, which --- on the contrary of the C version --- are bare functions, since the state change checks are done by the `FiniteStateMachine` class
+* in accord to the above, it is easier to update the FSM scheme and regenerate only the header, then manually update the source file with the new/changed/deleted state and transition functions
+* the generated state functions return the special state `FSM::UNIMPLEMENTED`, which triggers an exception in the `FiniteStateMachine` class. This is useful for debugging, since it is easy to spot which state has not been implemented yet
+* the FiniteStateMachine class has a `run` method that runs the FSM until the exit state (identified as the only sink state in the graph) is reached. This method also accepts a lambda or a `std::function` object that is called at each iteration, and can be used for logging or other purposes
+* the `FiniteStateMachine::set_timing_function` method allows to set a function that is called at each iteration for timing purposes
+
+
 ## NEW in version 0.3
 
 Gem version o.3.0 introduces a new CLI option that enables the generation of code that support SIGINT signal management:
