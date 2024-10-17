@@ -468,10 +468,10 @@ public:
     });
 <% end -%>
     do {
-      (*this)(_state.first, _state.second);
       if (operation) {
         operation(*_data);
       }
+      (*this)(_state.first, _state.second);
       _state.first = _state.second;
       _state.second = (*this)(_state.second);
       if (_timing_func) {
