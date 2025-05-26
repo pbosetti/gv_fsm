@@ -442,7 +442,11 @@ public:
     if (_states.find(state) == _states.end()) {
       throw std::runtime_error("State not found: "s + state_names[state]);
     }
-    return _states[state](*_data);
+    state_t next = _states[state](*_data);
+    if (next == NO_CHANGE) {
+      next = state;
+    }
+    return next;
   }
 
   void operator()(<%= @prefix %>state_t from, <%= @prefix %>state_t to) {
@@ -453,12 +457,28 @@ public:
     }
   }
 
-  // Run the FSM from a given state
-  void run(<%= @prefix %>state_t state, operation_fun operation = nullptr) {
+
+  // Setup initial state links
+  void setup(state_t state) {
+    <% if sigint then -%>
     <%= ns %>::<%= self.sigint %>_requested = false;
-    <%= @prefix %>state_t prev_state = state;
+    <% end %>
     _state.first = state;
     _state.second = state;
+  }
+
+  // Evaluate the current state and update the next state
+  // to be used when main loop is customized (i.e., not using FSM::run())
+  state_t eval_state() {
+      _state.first = _state.second;
+      _state.second = (*this)(_state.second);
+      (*this)(_state.first, _state.second);
+      return _state.second;
+  }
+
+  // Run the FSM from a given state
+  void run(<%= @prefix %>state_t state, operation_fun operation = nullptr) {
+    setup(state);
 <% if sigint then -%>
     std::signal(SIGINT, [](int signum) {
 <% if log == :syslog then -%>
@@ -471,9 +491,7 @@ public:
       if (operation) {
         operation(*_data);
       }
-      (*this)(_state.first, _state.second);
-      _state.first = _state.second;
-      _state.second = (*this)(_state.second);
+      eval_state();
       if (_timing_func) {
         _timing_func();
       }
@@ -546,6 +564,8 @@ end -%>
 
 }; // namespace <%= @project_name || "FSM" %>
 
+#include "<%= File::basename(@cname) %>_impl.hpp"
+
 #endif // <%= File::basename(@cname).upcase %>_HPP
 
 EOHPP
@@ -564,7 +584,6 @@ EOHPP
 <% log = :syslog -%>
 #include <syslog.h>
 <% end -%>
-#include "<%= File::basename(@cname) %>.hpp"
     
 using namespace std;
 <% ns = @project_name || "FSM" -%>

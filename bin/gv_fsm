@@ -48,8 +48,8 @@ op = OptionParser.new do |parser|
     sm.ino = true
   end
 
-  parser.on("-l", "--no-log", "Omit log calls in stub functions") do
-    sm.syslog = false
+  parser.on("-l", "--log", "Add syslog calls in state and transition functions") do
+    sm.syslog = true
   end
 
   parser.on("-k", "--sigint STATE", "Install SIGINT handler that points to STATE") do |state|

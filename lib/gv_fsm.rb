@@ -16,7 +16,7 @@ module GV_FSM
 
     def initialize(filename = nil)
       @prefix = ""
-      @syslog = true
+      @syslog = false
       @ino = false
       @error = nil
       @matrix = nil
@@ -143,8 +143,8 @@ module GV_FSM
     end
 
     def generate_c(filename = @cname)
-      ext = (@ino || !@plain_c) ? "cpp" : "c"
-      fname = "#{filename}.#{ext}"
+      ext = (@ino || !@plain_c) ? "_impl.hpp" : ".c"
+      fname = "#{filename}#{ext}"
       File.open(fname, "w") do |f|
         f.puts ERB.new(HEADER, trim_mode: "<>-").result(binding)
         f.puts ERB.new(@plain_c ? CC : CPP, trim_mode: "<>-").result(binding)

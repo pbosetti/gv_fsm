@@ -44,10 +44,14 @@ Gem version 0.4 introduces a new CLI option that enables the generation of C++17
 
 The generated code is easier to use than the C version:
 
-* the `FiniteStateMachine` class is a template class that accepts the state data type as template parameter
+* It's implemented as a **header-only template class**, split in two files (where `<fsm>` is your chosen output name): 
+  * `<fsm>.hpp` is the class header, which you typically don't have to change 
+  * `<fsm>_impl.hpp` is the **implementation** header, where the actual state and transition functions are implemented (by you!)
+  * You only want to `#include "<fsm>.hpp"` in your code
+* the `FiniteStateMachine` header-only class is a template class that accepts the state data type as template parameter
 * almost all the boilerplate code is hidden in the `FiniteStateMachine` class header file, **including state change checks**. Under normal circumstances, you **do not need to edit** this file
 * the source file only has a list of state functions and transition functions, which --- on the contrary of the C version --- are bare functions, since the state change checks are done by the `FiniteStateMachine` class
-* in accord to the above, it is easier to update the FSM scheme and regenerate only the header, then manually update the source file with the new/changed/deleted state and transition functions
+* in accord to the above, it is easier to update the FSM scheme and regenerate only the implementation header, then manually update the source file with the new/changed/deleted state and transition functions
 * the generated state functions return the special state `FSM::UNIMPLEMENTED`, which triggers an exception in the `FiniteStateMachine` class. This is useful for debugging, since it is easy to spot which state has not been implemented yet
 * the FiniteStateMachine class has a `run` method that runs the FSM until the exit state (identified as the only sink state in the graph) is reached. This method also accepts a lambda or a `std::function` object that is called at each iteration, and can be used for logging or other purposes
 * the `FiniteStateMachine::set_timing_function` method allows to set a function that is called at each iteration for timing purposes
